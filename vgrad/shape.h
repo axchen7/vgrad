@@ -63,3 +63,10 @@ struct EmptyShape {
         return Shape<D, EmptyShape>{};
     }
 };
+
+constexpr auto make_shape() { return EmptyShape{}; }
+
+template <IsDimension Outer, IsDimension... Rest>
+constexpr auto make_shape(Outer outer, Rest... rest) {
+    return Shape<Outer, decltype(make_shape(rest...))>{};
+}
