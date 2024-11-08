@@ -26,6 +26,8 @@ struct Shape<Outer, Inner> {
     static constexpr Outer outer;
     static constexpr Inner inner;
 
+    static constexpr auto rank = 1 + Inner::rank;
+
     template <int I>
     static constexpr auto at() {
         if constexpr (I == 0) {
@@ -67,6 +69,8 @@ struct Shape<Outer, Inner> {
 
 struct EmptyShape {
     static constexpr bool is_shape = true;
+
+    static constexpr auto rank = 0;
 
     template <int I, IsDimension D>
     static constexpr auto unsqueeze(D dim) {
