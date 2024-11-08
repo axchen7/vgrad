@@ -38,26 +38,13 @@ class Tensor {
 
     std::shared_ptr<FlatData> data_;
 
-    explicit Tensor(NestedArray<Shape, DType> data) : data_(std::make_shared<FlatData>(flatten(data))) {}
+    Tensor() : data_(std::make_shared<FlatData>()) {}
+    Tensor(NestedArray<Shape, DType> data) : data_(std::make_shared<FlatData>(flatten(data))) {}
+
+    NestedArray<Shape, DType>& data() const { return *reinterpret_cast<NestedArray<Shape, DType>*>(data_->data()); }
 
    private:
-    template <typename Shape>
-    static void flatten_rec(NestedArray<Shape, DType>& data, FlatData::iterator begin) {
-        if constexpr (Shape::rank == 0) {
-            *begin = data;
-        } else {
-            for (size_t i = 0; i < Shape::outer.value; i++) {
-                flatten_rec<decltype(Shape::inner)>(data[i], begin);
-                begin += Shape::inner.flat_size;
-            }
-        }
-    }
-
-    static FlatData flatten(NestedArray<Shape, DType>& data) {
-        FlatData result;
-        flatten_rec<Shape>(data, result.begin());
-        return result;
-    }
+    static FlatData flatten(NestedArray<Shape, DType>& data) { return *reinterpret_cast<FlatData*>(data.data()); }
 };
 
 template <typename T>
