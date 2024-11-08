@@ -1,6 +1,8 @@
 #include <concepts>
 #include <type_traits>
 
+namespace vgrad {
+
 template <typename T>
 concept IsDimension = requires {
     { T::value } -> std::same_as<const int&>;
@@ -101,3 +103,5 @@ template <IsDimension Outer, IsDimension... Rest>
 constexpr auto make_shape(Outer outer, Rest... rest) {
     return Shape<Outer, decltype(make_shape(rest...))>{};
 }
+
+}  // namespace vgrad
