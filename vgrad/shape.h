@@ -20,25 +20,14 @@ template <typename Outer, typename Inner>
 struct Shape {};
 
 template <IsDimension Outer, IsShape Inner>
-struct Shape<Outer, Inner> {
+class Shape<Outer, Inner> {
+   public:
     static constexpr bool is_shape = true;
 
     static constexpr Outer outer;
     static constexpr Inner inner;
 
     static constexpr int rank = 1 + Inner::rank;
-
-    template <int I>
-    static constexpr int normalize_index() {
-        if constexpr (I < 0) {
-            constexpr int i = rank + I;
-            static_assert(i >= 0 && i < rank, "Invalid index");
-            return i;
-        } else {
-            static_assert(I >= 0 && I < rank, "Invalid index");
-            return I;
-        }
-    }
 
     template <int I>
     static constexpr auto at() {
@@ -86,11 +75,23 @@ struct Shape<Outer, Inner> {
             .template squeeze<i2>()
             .template unsqueeze<i2>(d1);
     }
+
+   private:
+    template <int I>
+    static constexpr int normalize_index() {
+        if constexpr (I < 0) {
+            constexpr int i = rank + I;
+            static_assert(i >= 0 && i < rank, "Invalid index");
+            return i;
+        } else {
+            static_assert(I >= 0 && I < rank, "Invalid index");
+            return I;
+        }
+    }
 };
 
 struct EmptyShape {
     static constexpr bool is_shape = true;
-
     static constexpr int rank = 0;
 };
 
