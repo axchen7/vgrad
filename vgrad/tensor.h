@@ -52,6 +52,12 @@ class Tensor {
 template <typename T>
 concept IsTensor = std::is_same_v<T, Tensor<typename T::Shape, typename T::DType>>;
 
+template <typename A>
+concept TensorDTypeIsFloating = IsTensor<A> && std::is_floating_point_v<typename A::DType>;
+
+template <typename A, typename B>
+concept TensorDTypeCompatible = IsTensor<A> && IsTensor<B> && std::is_same_v<typename A::DType, typename B::DType>;
+
 template <typename A, typename B>
 concept TensorShapeCompatible = IsTensor<A> && IsTensor<B> && std::is_same_v<typename A::Shape, typename B::Shape>;
 
