@@ -1,3 +1,6 @@
+#ifndef VGRAD_SHAPE_H_
+#define VGRAD_SHAPE_H_
+
 #include <concepts>
 #include <type_traits>
 
@@ -110,3 +113,5 @@ constexpr auto make_shape(Outer outer, Rest... rest) {
 }
 
 }  // namespace vgrad
+
+#endif  // VGRAD_SHAPE_H_
