@@ -26,57 +26,72 @@ struct Shape<Outer, Inner> {
     static constexpr Outer outer;
     static constexpr Inner inner;
 
-    static constexpr auto rank = 1 + Inner::rank;
+    static constexpr int rank = 1 + Inner::rank;
+
+    template <int I>
+    static constexpr int normalize_index() {
+        if constexpr (I < 0) {
+            constexpr int i = rank + I;
+            static_assert(i >= 0 && i < rank, "Invalid index");
+            return i;
+        } else {
+            static_assert(I >= 0 && I < rank, "Invalid index");
+            return I;
+        }
+    }
 
     template <int I>
     static constexpr auto at() {
-        if constexpr (I == 0) {
+        constexpr int i = normalize_index<I>();
+        if constexpr (i == 0) {
             return outer;
         } else {
-            return inner.template at<I - 1>();
+            return inner.template at<i - 1>();
         }
     }
 
     template <int I>
     static constexpr auto squeeze() {
-        if constexpr (I == 0) {
+        constexpr int i = normalize_index<I>();
+        if constexpr (i == 0) {
             return inner;
         } else {
-            return Shape<Outer, decltype(inner.template squeeze<I - 1>())>{};
+            return Shape<Outer, decltype(inner.template squeeze<i - 1>())>{};
         }
     }
 
     template <int I, IsDimension D>
     static constexpr auto unsqueeze(D dim) {
-        if constexpr (I == 0) {
-            return Shape<D, Shape<Outer, Inner>>{};
+        if constexpr (I == rank) {
+            return Shape<Outer, Shape<Inner, D>>{};
         } else {
-            return Shape<Outer, decltype(inner.template unsqueeze<I - 1>(dim))>{};
+            constexpr int i = normalize_index<I>();
+            if constexpr (i == 0) {
+                return Shape<D, Shape<Outer, Inner>>{};
+            } else {
+                return Shape<Outer, decltype(inner.template unsqueeze<i - 1>(dim))>{};
+            }
         }
     }
 
     template <int I1, int I2>
     static constexpr auto transpose() {
-        auto d1 = at<I1>();
-        auto d2 = at<I2>();
+        constexpr int i1 = normalize_index<I1>();
+        constexpr int i2 = normalize_index<I2>();
+        auto d1 = at<i1>();
+        auto d2 = at<i2>();
         return Shape<Outer, Inner>{}
-            .template squeeze<I1>()
-            .template unsqueeze<I1>(d2)
-            .template squeeze<I2>()
-            .template unsqueeze<I2>(d1);
+            .template squeeze<i1>()
+            .template unsqueeze<i1>(d2)
+            .template squeeze<i2>()
+            .template unsqueeze<i2>(d1);
     }
 };
 
 struct EmptyShape {
     static constexpr bool is_shape = true;
 
-    static constexpr auto rank = 0;
-
-    template <int I, IsDimension D>
-    static constexpr auto unsqueeze(D dim) {
-        static_assert(I == 0, "Invalid index");
-        return Shape<D, EmptyShape>{};
-    }
+    static constexpr int rank = 0;
 };
 
 constexpr auto make_shape() { return EmptyShape{}; }
