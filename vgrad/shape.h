@@ -30,6 +30,7 @@ class Shape<Outer, Inner> {
     static constexpr Inner inner;
 
     static constexpr int rank = 1 + Inner::rank;
+    static constexpr int flat_size = Inner::rank == 0 ? Outer::value : Outer::value * Inner::flat_size;
 
     template <int I>
     static constexpr auto at() {
@@ -95,6 +96,7 @@ class Shape<Outer, Inner> {
 struct EmptyShape {
     static constexpr bool is_shape = true;
     static constexpr int rank = 0;
+    static constexpr int flat_size = 0;
 };
 
 constexpr auto make_shape() { return EmptyShape{}; }
