@@ -52,6 +52,17 @@ struct Shape<Outer, Inner> {
             return Shape<Outer, decltype(inner.template unsqueeze<I - 1>(dim))>{};
         }
     }
+
+    template <int I1, int I2>
+    static constexpr auto transpose() {
+        auto d1 = at<I1>();
+        auto d2 = at<I2>();
+        return Shape<Outer, Inner>{}
+            .template squeeze<I1>()
+            .template unsqueeze<I1>(d2)
+            .template squeeze<I2>()
+            .template unsqueeze<I2>(d1);
+    }
 };
 
 struct EmptyShape {
