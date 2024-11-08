@@ -16,10 +16,6 @@ struct Dimension {
     static constexpr int value = V;
 };
 
-struct BaseShape {
-    static constexpr bool is_shape = true;
-};
-
 template <typename Outer, typename Inner>
 struct Shape {};
 
@@ -37,5 +33,33 @@ struct Shape<Outer, Inner> {
         } else {
             return inner.template at<I - 1>();
         }
+    }
+
+    template <int I>
+    static constexpr auto squeeze() {
+        if constexpr (I == 0) {
+            return inner;
+        } else {
+            return Shape<Outer, decltype(inner.template squeeze<I - 1>())>{};
+        }
+    }
+
+    template <int I, IsDimension D>
+    static constexpr auto unsqueeze(D dim) {
+        if constexpr (I == 0) {
+            return Shape<D, Shape<Outer, Inner>>{};
+        } else {
+            return Shape<Outer, decltype(inner.template unsqueeze<I - 1>(dim))>{};
+        }
+    }
+};
+
+struct EmptyShape {
+    static constexpr bool is_shape = true;
+
+    template <int I, IsDimension D>
+    static constexpr auto unsqueeze(D dim) {
+        static_assert(I == 0, "Invalid index");
+        return Shape<D, EmptyShape>{};
     }
 };
