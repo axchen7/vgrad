@@ -41,10 +41,12 @@ class Tensor {
     Tensor() : data_(std::make_shared<FlatData>()) {}
     Tensor(NestedArray<Shape, DType> data) : data_(std::make_shared<FlatData>(flatten(data))) {}
 
-    NestedArray<Shape, DType>& data() const { return *reinterpret_cast<NestedArray<Shape, DType>*>(data_->data()); }
+    auto& operator[](Size index) { return data()[index]; }
 
    private:
-    static FlatData flatten(NestedArray<Shape, DType>& data) { return *reinterpret_cast<FlatData*>(data.data()); }
+    static FlatData& flatten(NestedArray<Shape, DType>& data) { return *reinterpret_cast<FlatData*>(data.data()); }
+
+    NestedArray<Shape, DType>& data() { return *reinterpret_cast<NestedArray<Shape, DType>*>(data_->data()); }
 };
 
 template <typename T>
