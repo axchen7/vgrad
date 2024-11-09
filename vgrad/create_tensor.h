@@ -7,6 +7,8 @@
 
 namespace vgrad {
 
+std::default_random_engine eng(std::random_device{}());
+
 template <typename DType, IsDimension Dim>
 constexpr auto eye() {
     Dim dim;
@@ -21,26 +23,41 @@ constexpr auto eye() {
 }
 
 template <typename DType, IsShape Shape>
-constexpr auto zeros() {
+constexpr auto full(DType value) {
     Tensor<Shape, DType> result;
     for (Size i = 0; i < Shape::flat_size; i++) {
-        (*result.data_)[i] = 0;
+        (*result.data_)[i] = value;
     }
     return result;
+}
+
+template <typename DType, IsShape Shape>
+constexpr auto zeros() {
+    return full<DType, Shape>(0);
 }
 
 template <typename DType, IsShape Shape>
 constexpr auto ones() {
-    Tensor<Shape, DType> result;
-    for (Size i = 0; i < Shape::flat_size; i++) {
-        (*result.data_)[i] = 1;
-    }
-    return result;
+    return full<DType, Shape>(1);
+}
+
+template <IsTensor T>
+constexpr auto full_like(const T& tensor, typename T::DType value) {
+    return full<typename T::DType, typename T::Shape>(value);
+}
+
+template <IsTensor T>
+constexpr auto zeros_like(const T& tensor) {
+    return zeros<typename T::DType, typename T::Shape>();
+}
+
+template <IsTensor T>
+constexpr auto ones_like(const T& tensor) {
+    return ones<typename T::DType, typename T::Shape>();
 }
 
 template <typename DType, IsShape Shape>
 auto randn() {
-    std::default_random_engine eng;
     std::normal_distribution<DType> dist(0, 1);
 
     Tensor<Shape, DType> result;
