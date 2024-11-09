@@ -71,6 +71,46 @@ auto operator/(const A& a, const B& b) {
     return binary_op(a, b, [](auto x, auto y) { return x / y; });
 }
 
+template <IsTensor A>
+auto operator+(const A& a, typename A::DType b) {
+    return unary_op(a, [b](auto x) { return x + b; });
+}
+
+template <IsTensor B>
+auto operator+(typename B::DType a, const B& b) {
+    return unary_op(b, [a](auto x) { return a + x; });
+}
+
+template <IsTensor A>
+auto operator-(const A& a, typename A::DType b) {
+    return unary_op(a, [b](auto x) { return x - b; });
+}
+
+template <IsTensor B>
+auto operator-(typename B::DType a, const B& b) {
+    return unary_op(b, [a](auto x) { return a - x; });
+}
+
+template <IsTensor A>
+auto operator*(const A& a, typename A::DType b) {
+    return unary_op(a, [b](auto x) { return x * b; });
+}
+
+template <IsTensor B>
+auto operator*(typename B::DType a, const B& b) {
+    return unary_op(b, [a](auto x) { return a * x; });
+}
+
+template <IsTensor A>
+auto operator/(const A& a, typename A::DType b) {
+    return unary_op(a, [b](auto x) { return x / b; });
+}
+
+template <IsTensor B>
+auto operator/(typename B::DType a, const B& b) {
+    return unary_op(b, [a](auto x) { return a / x; });
+}
+
 }  // namespace vgrad
 
 #endif  // VGRAD_OPS_H_
