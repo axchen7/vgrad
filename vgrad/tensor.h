@@ -63,8 +63,8 @@ template <typename A, typename B>
 concept TensorShapeCompatible = IsTensor<A> && IsTensor<B> && std::is_same_v<typename A::Shape, typename B::Shape>;
 
 template <typename A, typename B>
-concept TensorMultiplicationCompatible = IsTensor<A> && IsTensor<B> && A::Shape::rank >= 2 && B::Shape::rank >= 2 &&
-                                         A::Shape::template dim<-1>() == B::Shape::template dim<-2>();
+concept TensorMatmulCompatible = IsTensor<A> && IsTensor<B> && A::Shape::rank >= 2 && B::Shape::rank >= 2 &&
+                                 A::Shape::template At<-1>::value == B::Shape::template At<-2>::value;
 
 }  // namespace vgrad
 

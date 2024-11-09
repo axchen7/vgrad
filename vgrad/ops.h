@@ -33,12 +33,15 @@ auto binary_op(const A& a, const B& b, auto op) {
 
 template <Index I1, Index I2, IsTensor A>
 auto transpose(const A& a) {
+    constexpr auto idx1 = A::Shape::template normalize_index<I1>();
+    constexpr auto idx2 = A::Shape::template normalize_index<I2>();
+
     using NewShape = typename A::Shape::template Transpose<I1, I2>;
     Tensor<NewShape, typename A::DType> result;
 
     for (Size i = 0; i < a.data_->size(); i++) {
         auto indices = A::Shape::to_indices(i);
-        std::swap(indices[I1], indices[I2]);
+        std::swap(indices[idx1], indices[idx2]);
         auto new_idx = NewShape::to_flat_index(indices);
         (*result.data_)[new_idx] = (*a.data_)[i];
     }
@@ -64,12 +67,14 @@ auto unsqueeze(const A& a) {
 template <Index I, IsDimension Dim, IsTensor A>
     requires(A::Shape::template At<I>::value == 1)
 auto repeat(const A& a) {
-    using NewShape = typename A::Shape::template Remove<I>::template Insert<I, Dim>;
+    constexpr auto idx = A::Shape::template normalize_index<I>();
+
+    using NewShape = typename A::Shape::template Remove<idx>::template Insert<idx, Dim>;
     Tensor<NewShape, typename A::DType> result;
 
     for (Size i = 0; i < result.data_->size(); i++) {
         auto indices = NewShape::to_indices(i);
-        indices[I] = 0;
+        indices[idx] = 0;
         auto flat_idx = A::Shape::to_flat_index(indices);
         (*result.data_)[i] = (*a.data_)[flat_idx];
     }
@@ -89,6 +94,33 @@ auto reduce(const A& a, auto op) {
         (*result.data_)[i] = op(slice);
     }
     return result;
+}
+
+template <IsTensor A, IsTensor B>
+    requires TensorDTypeCompatible<A, B> && TensorMatmulCompatible<A, B>
+auto matmul(const A& a, const B& b) {
+    // A has shape .. x M x N
+    // B has shape .. x N x P
+    using M = typename A::Shape::template At<-2>;
+    using N = typename A::Shape::template At<-1>;
+    using P = typename B::Shape::template At<-1>;
+
+    // expand A to .. x M x 1 x N
+    auto c = unsqueeze<-1>(a);
+    // expand A to .. x M x P x N
+    auto d = repeat<-2, P>(c);
+
+    // transpose B to .. x P x N
+    auto e = transpose<-2, -1>(b);
+    // expand B to .. x 1 x P x N
+    auto f = unsqueeze<-2>(e);
+    // expand B to .. x M x P x N
+    auto g = repeat<-3, M>(f);
+
+    // element-wise multiplication, still .. x M x P x N
+    auto h = d * g;
+    // collapse the last dimension, yielding .. x M x P
+    return sum(h);
 }
 
 template <IsTensor A>
