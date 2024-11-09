@@ -29,7 +29,7 @@ auto binary_op(const A& a, const B& b, auto op) {
     return result;
 }
 
-template <IsTensor A, Index I1, Index I2>
+template <Index I1, Index I2, IsTensor A>
 auto transpose(const A& a) {
     using NewShape = typename A::Shape::template Transpose<I1, I2>;
     Tensor<NewShape, typename A::DType> result;
