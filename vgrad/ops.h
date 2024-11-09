@@ -22,16 +22,19 @@ auto operator-(const A& a) {
     return unary_op(a, [](auto x) { return -x; });
 }
 
-template <IsTensor A>
-    requires TensorDTypeIsFloating<A>
+template <IsFloatTensor A>
 auto exp(const A& a) {
     return unary_op(a, [](auto x) { return std::exp(x); });
 }
 
-template <IsTensor A>
-    requires TensorDTypeIsFloating<A>
+template <IsFloatTensor A>
 auto log(const A& a) {
     return unary_op(a, [](auto x) { return std::log(x); });
+}
+
+template <IsFloatTensor A>
+auto relu(const A& a) {
+    return unary_op(a, [](auto x) { return x > 0 ? x : 0; });
 }
 
 template <IsTensor A, IsTensor B>
