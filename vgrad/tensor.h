@@ -39,6 +39,7 @@ class Tensor {
     std::shared_ptr<FlatData> data_;
 
     Tensor() : data_(std::make_shared<FlatData>()) {}
+    Tensor(std::shared_ptr<FlatData> data) : data_(data) {}
     Tensor(NestedArray<Shape, DType> data) : data_(std::make_shared<FlatData>(flatten(data))) {}
 
     auto& operator[](Size index) { return data()[index]; }

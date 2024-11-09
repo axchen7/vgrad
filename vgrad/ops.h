@@ -10,6 +10,8 @@ namespace vgrad {
 template <typename A, typename B>
 concept TensorBinaryOpCompatible = TensorDTypeCompatible<A, B> && TensorShapeCompatible<A, B>;
 
+using OneDimension = Dimension<1>;  // for unsqueeze
+
 template <IsTensor A>
 auto unary_op(const A& a, auto op) {
     Tensor<typename A::Shape, typename A::DType> result;
@@ -56,6 +58,19 @@ auto transpose(const A& a) {
     }
 
     return result;
+}
+
+template <Index I, IsTensor A>
+    requires(A::Shape::template At<I>::value == 1)
+auto squeeze(const A& a) {
+    using NewShape = typename A::Shape::template Remove<I>;
+    return Tensor<NewShape, typename A::DType>(a.data_);
+}
+
+template <Index I, IsTensor A>
+auto unsqueeze(const A& a) {
+    using NewShape = typename A::Shape::template Insert<I, OneDimension>;
+    return Tensor<NewShape, typename A::DType>(a.data_);
 }
 
 // Reduce the last dimension of a tensor.
