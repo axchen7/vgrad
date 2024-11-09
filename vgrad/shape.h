@@ -112,6 +112,25 @@ class Shape<Outer, Inner> {
         return result;
     }
 
+    static constexpr auto to_indices(Size flat_index) {
+        auto s = strides();
+        std::array<Size, rank> result{};
+        for (Size i = 0; i < rank; i++) {
+            result[i] = flat_index / s[i];
+            flat_index %= s[i];
+        }
+        return result;
+    }
+
+    static constexpr auto to_flat_index(std::array<Size, rank> indices) {
+        auto s = strides();
+        Size result = 0;
+        for (Size i = 0; i < rank; i++) {
+            result += indices[i] * s[i];
+        }
+        return result;
+    }
+
     static constexpr auto as_string() {
         std::string result = std::to_string(outer.value);
         if constexpr (Inner::rank > 0) {

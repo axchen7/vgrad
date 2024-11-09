@@ -36,30 +36,17 @@ auto transpose(const A& a) {
     using NewShape = typename A::Shape::template Transpose<I1, I2>;
     Tensor<NewShape, typename A::DType> result;
 
-    constexpr auto original_strides = A::Shape::strides();
-    constexpr auto new_strides = NewShape::strides();
-
     for (Size i = 0; i < a.data_->size(); i++) {
-        std::array<Size, A::Shape::rank> indices;
-
-        Size orig_idx = i;
-        for (Size j = 0; j < indices.size(); j++) {
-            indices[j] = orig_idx / original_strides[j];
-            orig_idx %= original_strides[j];
-        }
+        auto indices = A::Shape::to_indices(i);
         std::swap(indices[I1], indices[I2]);
-
-        Size new_idx = 0;
-        for (Size j = 0; j < indices.size(); j++) {
-            new_idx += indices[j] * new_strides[j];
-        }
-
+        auto new_idx = NewShape::to_flat_index(indices);
         (*result.data_)[new_idx] = (*a.data_)[i];
     }
 
     return result;
 }
 
+// Remove a singleton dimension from a tensor.
 template <Index I, IsTensor A>
     requires(A::Shape::template At<I>::value == 1)
 auto squeeze(const A& a) {
@@ -71,6 +58,23 @@ template <Index I, IsTensor A>
 auto unsqueeze(const A& a) {
     using NewShape = typename A::Shape::template Insert<I, OneDimension>;
     return Tensor<NewShape, typename A::DType>(a.data_);
+}
+
+// Repeat a singleton dimension of a tensor to make it of dimension Dim.
+template <Index I, IsDimension Dim, IsTensor A>
+    requires(A::Shape::template At<I>::value == 1)
+auto repeat(const A& a) {
+    using NewShape = typename A::Shape::template Remove<I>::template Insert<I, Dim>;
+    Tensor<NewShape, typename A::DType> result;
+
+    for (Size i = 0; i < result.data_->size(); i++) {
+        auto indices = NewShape::to_indices(i);
+        indices[I] = 0;
+        auto flat_idx = A::Shape::to_flat_index(indices);
+        (*result.data_)[i] = (*a.data_)[flat_idx];
+    }
+
+    return result;
 }
 
 // Reduce the last dimension of a tensor.
