@@ -49,6 +49,9 @@ class Shape<Outer, Inner> {
     }
 
     template <Index I>
+    using At = decltype(at<I>());
+
+    template <Index I>
     static constexpr auto squeeze() {
         constexpr auto i = normalize_index<I>();
         if constexpr (i == 0) {
@@ -58,32 +61,41 @@ class Shape<Outer, Inner> {
         }
     }
 
-    template <Index I, IsDimension D>
-    static constexpr auto unsqueeze(D dim) {
+    template <Index I>
+    using Squeeze = decltype(squeeze<I>());
+
+    template <Index I, IsDimension Dim>
+    static constexpr auto unsqueeze() {
         if constexpr (I == rank) {
-            return Shape<Outer, Shape<Inner, D>>{};
+            return Shape<Outer, Shape<Inner, Dim>>{};
         } else {
             constexpr auto i = normalize_index<I>();
             if constexpr (i == 0) {
-                return Shape<D, Shape<Outer, Inner>>{};
+                return Shape<Dim, Shape<Outer, Inner>>{};
             } else {
-                return Shape<Outer, decltype(inner.template unsqueeze<i - 1>(dim))>{};
+                return Shape<Outer, decltype(inner.template unsqueeze<i - 1, Dim>())>{};
             }
         }
     }
+
+    template <Index I, IsDimension D>
+    using Unsqueeze = decltype(unsqueeze<I, D>());
 
     template <Index I1, Index I2>
     static constexpr auto transpose() {
         constexpr auto i1 = normalize_index<I1>();
         constexpr auto i2 = normalize_index<I2>();
-        auto d1 = at<i1>();
-        auto d2 = at<i2>();
+        using D1 = At<i1>;
+        using D2 = At<i2>;
         return Shape<Outer, Inner>{}
             .template squeeze<i1>()
-            .template unsqueeze<i1>(d2)
+            .template unsqueeze<i1, D2>()
             .template squeeze<i2>()
-            .template unsqueeze<i2>(d1);
+            .template unsqueeze<i2, D1>();
     }
+
+    template <Index I1, Index I2>
+    using Transpose = decltype(transpose<I1, I2>());
 
    private:
     template <Index I>
@@ -111,6 +123,9 @@ template <IsDimension Outer, IsDimension... Rest>
 constexpr auto make_shape(Outer outer, Rest... rest) {
     return Shape<Outer, decltype(make_shape(rest...))>{};
 }
+
+template <IsDimension Outer, IsDimension... Rest>
+using MakeShape = decltype(make_shape(Outer{}, Rest{}...));
 
 }  // namespace vgrad
 
