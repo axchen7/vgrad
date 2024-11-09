@@ -12,7 +12,7 @@ using Index = int;  // allow negative indexing
 template <typename T>
 concept IsDimension = requires {
     { T::value } -> std::same_as<const Size&>;
-};
+} && (T::value > 0);
 
 template <typename T>
 concept IsShape = requires {
@@ -20,6 +20,7 @@ concept IsShape = requires {
 } && T::is_shape;
 
 template <Size V>
+    requires(V > 0)
 struct Dimension {
     static constexpr Size value = V;
 };
