@@ -66,8 +66,10 @@ class Shape<Outer, Inner> {
 
     template <Index I, IsDimension Dim>
     static constexpr auto insert() {
-        if constexpr (I == rank) {
-            return Shape<Outer, Shape<Inner, Dim>>{};
+        if constexpr (I == rank && Inner::rank == 0) {
+            return Shape<Outer, Shape<Dim, Inner>>{};
+        } else if constexpr (I == rank) {
+            return Shape<Outer, decltype(inner.template insert<I - 1, Dim>())>{};
         } else {
             constexpr auto i = normalize_index<I>();
             if constexpr (i == 0) {
