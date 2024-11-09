@@ -52,20 +52,20 @@ class Shape<Outer, Inner> {
     using At = decltype(at<I>());
 
     template <Index I>
-    static constexpr auto squeeze() {
+    static constexpr auto remove() {
         constexpr auto i = normalize_index<I>();
         if constexpr (i == 0) {
             return inner;
         } else {
-            return Shape<Outer, decltype(inner.template squeeze<i - 1>())>{};
+            return Shape<Outer, decltype(inner.template remove<i - 1>())>{};
         }
     }
 
     template <Index I>
-    using Squeeze = decltype(squeeze<I>());
+    using Remove = decltype(remove<I>());
 
     template <Index I, IsDimension Dim>
-    static constexpr auto unsqueeze() {
+    static constexpr auto insert() {
         if constexpr (I == rank) {
             return Shape<Outer, Shape<Inner, Dim>>{};
         } else {
@@ -73,13 +73,13 @@ class Shape<Outer, Inner> {
             if constexpr (i == 0) {
                 return Shape<Dim, Shape<Outer, Inner>>{};
             } else {
-                return Shape<Outer, decltype(inner.template unsqueeze<i - 1, Dim>())>{};
+                return Shape<Outer, decltype(inner.template insert<i - 1, Dim>())>{};
             }
         }
     }
 
-    template <Index I, IsDimension D>
-    using Unsqueeze = decltype(unsqueeze<I, D>());
+    template <Index I, IsDimension Dim>
+    using Insert = decltype(insert<I, Dim>());
 
     template <Index I1, Index I2>
     static constexpr auto transpose() {
@@ -88,10 +88,10 @@ class Shape<Outer, Inner> {
         using D1 = At<i1>;
         using D2 = At<i2>;
         return Shape<Outer, Inner>{}
-            .template squeeze<i1>()
-            .template unsqueeze<i1, D2>()
-            .template squeeze<i2>()
-            .template unsqueeze<i2, D1>();
+            .template remove<i1>()
+            .template insert<i1, D2>()
+            .template remove<i2>()
+            .template insert<i2, D1>();
     }
 
     template <Index I1, Index I2>
