@@ -99,6 +99,26 @@ class Shape<Outer, Inner> {
     template <Index I1, Index I2>
     using Transpose = decltype(transpose<I1, I2>());
 
+    static constexpr auto strides() {
+        std::array<Size, rank> result{};
+        result[0] = inner.flat_size;
+        if constexpr (rank > 1) {
+            auto inner_strides = inner.strides();
+            for (Size i = 0; i < inner.rank; i++) {
+                result[i + 1] = inner_strides[i];
+            }
+        }
+        return result;
+    }
+
+    static constexpr auto as_string() {
+        std::string result = std::to_string(outer.value);
+        if constexpr (Inner::rank > 0) {
+            result += "x" + Inner::as_string();
+        }
+        return result;
+    }
+
    private:
     template <Index I>
     static constexpr Size normalize_index() {
