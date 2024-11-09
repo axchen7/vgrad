@@ -17,6 +17,16 @@ auto unary_op(const A& a, auto op) {
     return result;
 }
 
+template <IsTensor A, IsTensor B>
+    requires TensorBinaryOpCompatible<A, B>
+auto binary_op(const A& a, const B& b, auto op) {
+    Tensor<typename A::Shape, typename A::DType> result;
+    for (Size i = 0; i < a.data_->size(); ++i) {
+        (*result.data_)[i] = op((*a.data_)[i], (*b.data_)[i]);
+    }
+    return result;
+}
+
 template <IsTensor A>
 auto operator-(const A& a) {
     return unary_op(a, [](auto x) { return -x; });
@@ -35,16 +45,6 @@ auto log(const A& a) {
 template <IsFloatTensor A>
 auto relu(const A& a) {
     return unary_op(a, [](auto x) { return x > 0 ? x : 0; });
-}
-
-template <IsTensor A, IsTensor B>
-    requires TensorBinaryOpCompatible<A, B>
-auto binary_op(const A& a, const B& b, auto op) {
-    Tensor<typename A::Shape, typename A::DType> result;
-    for (Size i = 0; i < a.data_->size(); ++i) {
-        (*result.data_)[i] = op((*a.data_)[i], (*b.data_)[i]);
-    }
-    return result;
 }
 
 template <IsTensor A, IsTensor B>
