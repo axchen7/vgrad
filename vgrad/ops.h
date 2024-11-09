@@ -58,15 +58,15 @@ auto transpose(const A& a) {
     return result;
 }
 
+// Reduce the last dimension of a tensor.
 template <IsTensor A>
-auto reduce_last_dim(const A& a, auto op) {
+auto reduce(const A& a, auto op) {
+    using LastDim = typename A::Shape::template At<-1>;
     using NewShape = typename A::Shape::template Remove<-1>;
     Tensor<NewShape, typename A::DType> result;
 
-    constexpr auto last_dim = A::Shape::flat_size / NewShape::flat_size;
-
     for (Size i = 0; i < NewShape::flat_size; i++) {
-        std::span<const typename A::DType> slice{a.data_->begin() + i * last_dim, last_dim};
+        std::span<const typename A::DType> slice{a.data_->begin() + i * LastDim::value, LastDim::value};
         (*result.data_)[i] = op(slice);
     }
     return result;
@@ -110,7 +110,7 @@ auto operator*(const A& a, const B& b) {
     return binary_op(a, b, [](auto x, auto y) { return x * y; });
 }
 
-template <IsTensor A, IsTensor B>
+template <IsFloatTensor A, IsFloatTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator/(const A& a, const B& b) {
     return binary_op(a, b, [](auto x, auto y) { return x / y; });
@@ -146,14 +146,38 @@ auto operator*(typename B::DType a, const B& b) {
     return unary_op(b, [a](auto x) { return a * x; });
 }
 
-template <IsTensor A>
+template <IsFloatTensor A>
 auto operator/(const A& a, typename A::DType b) {
     return unary_op(a, [b](auto x) { return x / b; });
 }
 
-template <IsTensor B>
+template <IsFloatTensor B>
 auto operator/(typename B::DType a, const B& b) {
     return unary_op(b, [a](auto x) { return a / x; });
+}
+
+template <IsTensor A>
+auto sum(const A& a) {
+    return reduce(a, [](std::span<const typename A::DType> x) {
+        typename A::DType sum = 0;
+        for (auto i : x) sum += i;
+        return sum;
+    });
+}
+
+template <IsTensor A>
+auto prod(const A& a) {
+    return reduce(a, [](std::span<const typename A::DType> x) {
+        typename A::DType prod = 1;
+        for (auto i : x) prod *= i;
+        return prod;
+    });
+}
+
+template <IsTensor A>
+auto mean(const A& a) {
+    using LastDim = typename A::Shape::template At<-1>;
+    return sum(a) / LastDim::value;
 }
 
 }  // namespace vgrad
