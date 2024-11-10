@@ -15,8 +15,8 @@ using OneDimension = Dimension<1>;  // for unsqueeze
 template <IsTensor A>
 auto unary_op(const A& a, auto op) {
     Tensor<typename A::Shape, typename A::DType> result;
-    for (Size i = 0; i < a.data_->size(); i++) {
-        (*result.data_)[i] = op((*a.data_)[i]);
+    for (Size i = 0; i < A::Shape::flat_size; i++) {
+        result._init_entry(i, op(a.flat_view()[i]));
     }
     return result;
 }
@@ -25,8 +25,8 @@ template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto binary_op(const A& a, const B& b, auto op) {
     Tensor<typename A::Shape, typename A::DType> result;
-    for (Size i = 0; i < a.data_->size(); i++) {
-        (*result.data_)[i] = op((*a.data_)[i], (*b.data_)[i]);
+    for (Size i = 0; i < A::Shape::flat_size; i++) {
+        result._init_entry(i, op(a.flat_view()[i], b.flat_view()[i]));
     }
     return result;
 }
@@ -39,11 +39,11 @@ auto transpose(const A& a) {
     using NewShape = typename A::Shape::template Transpose<I1, I2>;
     Tensor<NewShape, typename A::DType> result;
 
-    for (Size i = 0; i < a.data_->size(); i++) {
+    for (Size i = 0; i < A::Shape::flat_size; i++) {
         auto indices = A::Shape::to_indices(i);
         std::swap(indices[idx1], indices[idx2]);
         auto new_idx = NewShape::to_flat_index(indices);
-        (*result.data_)[new_idx] = (*a.data_)[i];
+        result._init_entry(new_idx, a.flat_view()[i]);
     }
 
     return result;
@@ -54,13 +54,13 @@ template <Index I, IsTensor A>
     requires(A::Shape::template At<I>::value == 1)
 auto squeeze(const A& a) {
     using NewShape = typename A::Shape::template Remove<I>;
-    return Tensor<NewShape, typename A::DType>(a.data_);
+    return a.template reshape<NewShape>();
 }
 
 template <Index I, IsTensor A>
 auto unsqueeze(const A& a) {
     using NewShape = typename A::Shape::template Insert<I, OneDimension>;
-    return Tensor<NewShape, typename A::DType>(a.data_);
+    return a.template reshape<NewShape>();
 }
 
 // Repeat a singleton dimension of a tensor to make it of dimension Dim.
@@ -72,11 +72,11 @@ auto repeat(const A& a) {
     using NewShape = typename A::Shape::template Remove<idx>::template Insert<idx, Dim>;
     Tensor<NewShape, typename A::DType> result;
 
-    for (Size i = 0; i < result.data_->size(); i++) {
+    for (Size i = 0; i < NewShape::flat_size; i++) {
         auto indices = NewShape::to_indices(i);
         indices[idx] = 0;
         auto flat_idx = A::Shape::to_flat_index(indices);
-        (*result.data_)[i] = (*a.data_)[flat_idx];
+        result._init_entry(i, a.flat_view()[flat_idx]);
     }
 
     return result;
@@ -90,8 +90,8 @@ auto reduce(const A& a, auto op) {
     Tensor<NewShape, typename A::DType> result;
 
     for (Size i = 0; i < NewShape::flat_size; i++) {
-        std::span<const typename A::DType> slice{a.data_->begin() + i * LastDim::value, LastDim::value};
-        (*result.data_)[i] = op(slice);
+        std::span<const typename A::DType> slice{a.flat_view().begin() + i * LastDim::value, LastDim::value};
+        result._init_entry(i, op(slice));
     }
     return result;
 }

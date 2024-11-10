@@ -26,7 +26,7 @@ template <typename DType, IsShape Shape>
 constexpr auto full(DType value) {
     Tensor<Shape, DType> result;
     for (Size i = 0; i < Shape::flat_size; i++) {
-        (*result.data_)[i] = value;
+        result._init_entry(i, value);
     }
     return result;
 }
@@ -62,7 +62,7 @@ auto randn() {
 
     Tensor<Shape, DType> result;
     for (Size i = 0; i < Shape::flat_size; i++) {
-        (*result.data_)[i] = dist(eng);
+        result._init_entry(i, dist(eng));
     }
     return result;
 }

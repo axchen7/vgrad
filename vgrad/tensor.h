@@ -35,19 +35,48 @@ class Tensor {
     using Shape = Shape_;
     using DType = DType_;
     using FlatData = std::array<DType, Shape::flat_size>;
+    using NestedData = NestedArray<Shape, DType>;
+    using RawData = std::vector<DType>;
 
-    const std::shared_ptr<FlatData> data_;
+    Tensor() : data_(std::make_shared<RawData>(Shape::flat_size, DType{})) {}
 
-    Tensor() : data_(std::make_shared<FlatData>()) {}
-    Tensor(std::shared_ptr<FlatData> data) : data_(data) {}
-    Tensor(NestedArray<Shape, DType> data) : data_(std::make_shared<FlatData>(flatten(data))) {}
+    Tensor(const NestedData& data) : data_(std::make_shared<RawData>(Shape::flat_size)) {
+        auto flat_data = reinterpret_cast<const DType*>(data.data());
+        std::copy(flat_data, flat_data + Shape::flat_size, data_->begin());
+    }
 
-    auto& operator[](Size index) { return data()[index]; }
+    Tensor(const std::shared_ptr<RawData>& data) : data_(data) {}
+
+    template <IsShape NewShape>
+        requires(NewShape::flat_size == Shape::flat_size)
+    auto reshape() const {
+        return Tensor<NewShape, DType>{data_};
+    }
+
+    const FlatData& flat_view() const { return *reinterpret_cast<const FlatData*>(data_->data()); }
+
+    const NestedData& nested_view() const
+        requires(Shape::rank > 0)
+    {
+        return *reinterpret_cast<const NestedData*>(data_->data());
+    }
+
+    const auto value() const
+        requires(Shape::rank == 0)
+    {
+        return flat_view()[0];
+    }
+
+    const auto& operator[](Size index) const
+        requires(Shape::rank > 0)
+    {
+        return nested_view()[index];
+    }
+
+    void _init_entry(Size index, DType value) { (*data_)[index] = value; }
 
    private:
-    static FlatData& flatten(NestedArray<Shape, DType>& data) { return *reinterpret_cast<FlatData*>(data.data()); }
-
-    NestedArray<Shape, DType>& data() { return *reinterpret_cast<NestedArray<Shape, DType>*>(data_->data()); }
+    const std::shared_ptr<RawData> data_;
 };
 
 template <typename T>
