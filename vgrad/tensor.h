@@ -8,27 +8,6 @@
 
 namespace vgrad {
 
-template <typename T>
-concept Number = std::is_arithmetic_v<T>;
-
-template <IsShape Shape, Number DType>
-struct NestedArrayHelper;
-
-template <IsShape Shape, Number DType>
-    requires(Shape::rank == 0)
-struct NestedArrayHelper<Shape, DType> {
-    using type = DType;
-};
-
-template <IsShape Shape, Number DType>
-    requires(Shape::rank > 0)
-struct NestedArrayHelper<Shape, DType> {
-    using type = std::array<typename NestedArrayHelper<decltype(Shape::inner), DType>::type, Shape::outer.value>;
-};
-
-template <IsShape Shape, Number DType>
-using NestedArray = typename NestedArrayHelper<Shape, DType>::type;
-
 template <Number DType>
 struct RawTensor {
     using RawData = std::vector<DType>;

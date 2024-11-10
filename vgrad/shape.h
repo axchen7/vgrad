@@ -1,23 +1,9 @@
 #ifndef VGRAD_SHAPE_H_
 #define VGRAD_SHAPE_H_
 
-#include <concepts>
-#include <type_traits>
+#include "types.h"
 
 namespace vgrad {
-
-using Size = unsigned int;
-using Index = int;  // allow negative indexing
-
-template <typename T>
-concept IsDimension = requires {
-    { T::value } -> std::same_as<const Size&>;
-} && (T::value > 0);
-
-template <typename T>
-concept IsShape = requires {
-    { T::is_shape } -> std::same_as<const bool&>;
-} && T::is_shape;
 
 template <Size V>
     requires(V > 0)
