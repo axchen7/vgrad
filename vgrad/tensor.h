@@ -29,6 +29,12 @@ struct NestedArrayHelper<Shape, DType> {
 template <IsShape Shape, Number DType>
 using NestedArray = typename NestedArrayHelper<Shape, DType>::type;
 
+template <Number DType>
+struct RawTensor {
+    using RawData = std::vector<DType>;
+    const std::shared_ptr<RawData> data_;
+};
+
 template <IsShape Shape_, Number DType_>
 class Tensor {
    public:
@@ -45,7 +51,9 @@ class Tensor {
         std::copy(flat_data, flat_data + Shape::flat_size, data_->begin());
     }
 
-    Tensor(const std::shared_ptr<RawData>& data) : data_(data) {}
+    Tensor(const RawTensor<DType>& raw_tensor) : data_(raw_tensor.data_) { assert(data_->size() == Shape::flat_size); }
+
+    Tensor(const std::shared_ptr<RawData>& data) : data_(data) { assert(data_->size() == Shape::flat_size); }
 
     template <IsShape NewShape>
         requires(NewShape::flat_size == Shape::flat_size)
@@ -72,6 +80,8 @@ class Tensor {
     {
         return nested_view()[index];
     }
+
+    auto to_raw_tensor() { return RawTensor<DType>{data_}; }
 
     void _init_entry(Size index, DType value) { (*data_)[index] = value; }
 
