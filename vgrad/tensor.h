@@ -36,7 +36,7 @@ class Tensor {
     using DType = DType_;
     using FlatData = std::array<DType, Shape::flat_size>;
 
-    std::shared_ptr<FlatData> data_;
+    const std::shared_ptr<FlatData> data_;
 
     Tensor() : data_(std::make_shared<FlatData>()) {}
     Tensor(std::shared_ptr<FlatData> data) : data_(data) {}
