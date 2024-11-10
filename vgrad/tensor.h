@@ -76,7 +76,7 @@ class Tensor {
     void _init_entry(Size index, DType value) { (*data_)[index] = value; }
 
    private:
-    const std::shared_ptr<RawData> data_;
+    std::shared_ptr<RawData> data_;
 };
 
 template <typename T>

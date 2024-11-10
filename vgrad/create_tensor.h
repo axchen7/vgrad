@@ -16,7 +16,8 @@ constexpr auto eye() {
     Tensor<decltype(shape), DType> result;
     for (Size i = 0; i < Dim::value; i++) {
         for (Size j = 0; j < Dim::value; j++) {
-            result[i][j] = i == j ? 1 : 0;
+            DType val = i == j ? 1 : 0;
+            result._init_entry(i * Dim::value + j, val);
         }
     }
     return result;
