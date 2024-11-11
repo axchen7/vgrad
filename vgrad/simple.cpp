@@ -10,7 +10,7 @@ int main() {
     using D2 = Dimension<2>;
     using D3 = Dimension<3>;
 
-    using Shape1 = Shape<D1, EmptyShape>;
+    using Shape1 = Shape<D1, ScalarShape>;
     using Shape2 = Shape<D2, Shape1>;
 
     auto x = Shape1::at<0>();
