@@ -48,6 +48,7 @@ class Tensor {
     template <IsShape NewShape>
         requires(NewShape::flat_size == Shape::flat_size)
     auto reshape() const {
+        // TODO: backprop
         return Tensor<NewShape, DType>{data_};
     }
 
@@ -70,6 +71,8 @@ class Tensor {
     {
         return nested_view()[index];
     }
+
+    auto detach() const { return Tensor<Shape, DType>{data_}; }
 
     const auto get_node() const { return node_; }
 

@@ -23,7 +23,8 @@ auto unary_op(const A& a, auto forward, auto backward) {
                  for (Size i = 0; i < A::Shape::flat_size; i++) {
                      df_da._init_entry(i, backward(a.flat_view()[i]));
                  }
-                 return df_da * dl_df;
+                 auto dl_da = dl_df * df_da;
+                 return dl_da.detach();
              }}};
 
     for (Size i = 0; i < A::Shape::flat_size; i++) {
