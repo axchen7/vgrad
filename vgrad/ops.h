@@ -17,15 +17,17 @@ template <IsTensor A>
 auto unary_op(const A& a, auto forward, auto backward) {
     using Node = UnaryOpNode<typename A::Node, typename A::Shape, typename A::DType>;
 
-    Tensor<typename A::Shape, typename A::DType, Node> result{
-        Node{a.get_node(), [a, backward](const auto& dl_df) {
-                 Tensor<typename A::Shape, typename A::DType> df_da;
-                 for (Size i = 0; i < A::Shape::flat_size; i++) {
-                     df_da._init_entry(i, backward(a.flat_view()[i]));
-                 }
-                 auto dl_da = dl_df * df_da;
-                 return dl_da.detach();
-             }}};
+    Tensor<typename A::Shape, typename A::DType, Node> result{Node{
+        a.get_node(),
+        [a, backward](const auto& dl_df) {
+            Tensor<typename A::Shape, typename A::DType> df_da;
+            for (Size i = 0; i < A::Shape::flat_size; i++) {
+                df_da._init_entry(i, backward(a.flat_view()[i]));
+            }
+            auto dl_da = dl_df * df_da;
+            return dl_da.detach();
+        },
+    }};
 
     for (Size i = 0; i < A::Shape::flat_size; i++) {
         result._init_entry(i, forward(a.flat_view()[i]));
@@ -49,7 +51,15 @@ auto transpose(const A& a) {
     constexpr auto idx2 = A::Shape::template normalize_index<I2>();
 
     using NewShape = typename A::Shape::template Transpose<I1, I2>;
-    Tensor<NewShape, typename A::DType> result;
+    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
+
+    Tensor<NewShape, typename A::DType, Node> result{Node{
+        a.get_node(),
+        [](const auto& dl_df) {
+            auto dl_da = transpose<I1, I2>(dl_df);
+            return dl_da.detach();
+        },
+    }};
 
     for (Size i = 0; i < A::Shape::flat_size; i++) {
         auto indices = A::Shape::to_indices(i);
