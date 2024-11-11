@@ -19,6 +19,11 @@ concept IsShape = requires {
 } && T::is_shape;
 
 template <typename T>
+concept IsNode = requires {
+    { T::is_node } -> std::same_as<const bool&>;
+} && T::is_node;
+
+template <typename T>
 concept Number = std::is_arithmetic_v<T>;
 
 template <IsShape Shape, Number DType>
