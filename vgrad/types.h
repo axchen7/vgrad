@@ -24,6 +24,16 @@ concept IsNode = requires {
 } && T::is_node;
 
 template <typename T>
+concept IsUnaryNode = IsNode<T> && requires {
+    { T::is_unary_node } -> std::same_as<const bool&>;
+} && T::is_unary_node;
+
+template <typename T>
+concept IsBinaryNode = IsNode<T> && requires {
+    { T::is_binary_node } -> std::same_as<const bool&>;
+} && T::is_binary_node;
+
+template <typename T>
 concept Number = std::is_arithmetic_v<T>;
 
 template <IsShape Shape, Number DType>

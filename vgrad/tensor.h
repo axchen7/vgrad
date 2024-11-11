@@ -26,6 +26,7 @@ class Tensor {
     using FlatData = std::array<DType, Shape::flat_size>;
     using NestedData = NestedArray<Shape, DType>;
     using RawData = std::vector<DType>;  // TODO use static-length std::array (no longer need raw data)
+    using Detached = Tensor<Shape, DType>;
 
     Tensor(Node&& node = Node{})
         : data_{std::make_shared<RawData>(Shape::flat_size, DType{})}, node_{std::make_shared<Node>(node)} {}
@@ -72,7 +73,7 @@ class Tensor {
         return nested_view()[index];
     }
 
-    auto detach() const { return Tensor<Shape, DType>{data_}; }
+    auto detach() const { return Detached{data_}; }
 
     const auto get_node() const { return node_; }
 
@@ -88,6 +89,9 @@ concept IsTensor = std::is_same_v<T, Tensor<typename T::Shape, typename T::DType
 
 template <typename A>
 concept IsFloatTensor = IsTensor<A> && std::is_floating_point_v<typename A::DType>;
+
+template <typename A>
+concept IsScalarTensor = IsTensor<A> && A::Shape::rank == 0;
 
 template <typename A, typename B>
 concept TensorDTypeCompatible = IsTensor<A> && IsTensor<B> && std::is_same_v<typename A::DType, typename B::DType>;

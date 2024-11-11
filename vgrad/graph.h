@@ -11,6 +11,7 @@ template <IsNode InNode, IsShape _OutShape, Number _DType>
     requires std::is_same_v<typename InNode::DType, _DType>
 struct UnaryOpNode {
     static constexpr bool is_node = true;
+    static constexpr bool is_unary_node = true;
 
     using DType = _DType;
     using InShape = InNode::OutShape;
@@ -27,6 +28,7 @@ template <IsNode InNode1, IsNode InNode2, IsShape _OutShape, Number _DType>
     requires std::is_same_v<typename InNode1::DType, _DType> && std::is_same_v<typename InNode2::DType, _DType>
 struct BinaryOpNode {
     static constexpr bool is_node = true;
+    static constexpr bool is_binary_node = true;
 
     using DType = _DType;
     using InShape1 = InNode1::OutShape;
