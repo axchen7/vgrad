@@ -32,8 +32,12 @@ class Tensor {
 
     Tensor(const NestedData& data, Node&& node = Node{})
         : data_{std::make_shared<RawData>(Shape::flat_size)}, node_{std::make_shared<Node>(node)} {
-        auto flat_data = reinterpret_cast<const DType*>(data.data());
-        std::copy(flat_data, flat_data + Shape::flat_size, data_->begin());
+        if constexpr (Shape::rank == 0) {
+            (*data_)[0] = data;
+        } else {
+            auto flat_data = reinterpret_cast<const DType*>(data.data());
+            std::copy(flat_data, flat_data + Shape::flat_size, data_->begin());
+        }
     }
 
     Tensor(const std::shared_ptr<RawData>& data, Node&& node = Node{})
