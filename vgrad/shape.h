@@ -137,13 +137,13 @@ struct Shape<Outer, Inner> {
     }
 };
 
-struct EmptyShape {
+struct ScalarShape {
     static constexpr bool is_shape = true;
     static constexpr Size rank = 0;
     static constexpr Size flat_size = 1;
 };
 
-constexpr auto make_shape() { return EmptyShape{}; }
+constexpr auto make_shape() { return ScalarShape{}; }
 
 template <IsDimension Outer, IsDimension... Rest>
 constexpr auto make_shape(Outer outer, Rest... rest) {
