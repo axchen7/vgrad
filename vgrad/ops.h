@@ -20,11 +20,11 @@ auto unary_op(const A& a, auto forward, auto backward) {
     Tensor<typename A::Shape, typename A::DType, Node> result{Node{
         a.get_node(),
         [a, backward](const auto& dl_df) {
-            Tensor<typename A::Shape, typename A::DType> df_da;
+            Tensor<typename A::Shape, typename A::DType> dl_da;
             for (Size i = 0; i < A::Shape::flat_size; i++) {
-                df_da._init_entry(i, backward(a.flat_view()[i]));
+                auto df_da = backward(a.flat_view()[i]);
+                dl_da._init_entry(i, dl_df.flat_view()[i] * df_da);
             }
-            auto dl_da = dl_df * df_da;
             return dl_da.detach();
         },
     }};
@@ -44,17 +44,15 @@ auto binary_op(const A& a, const B& b, auto forward, auto backward) {
         a.get_node(),
         b.get_node(),
         [a, b, backward](const auto& dl_df) {
-            Tensor<typename A::Shape, typename A::DType> df_da;
-            Tensor<typename B::Shape, typename B::DType> df_db;
+            Tensor<typename A::Shape, typename A::DType> dl_da;
+            Tensor<typename B::Shape, typename B::DType> dl_db;
             for (Size i = 0; i < A::Shape::flat_size; i++) {
-                auto [entry1, entry2] = backward(a.flat_view()[i]);
+                auto [df_da, df_db] = backward(a.flat_view()[i], b.flat_view()[i]);
 
-                df_da._init_entry(i, entry1);
-                df_db._init_entry(i, entry2);
+                dl_da._init_entry(i, dl_df.flat_view()[i] * df_da);
+                dl_db._init_entry(i, dl_df.flat_view()[i] * df_db);
             }
 
-            auto dl_da = dl_df * df_da;
-            auto dl_db = dl_df * df_db;
             return std::make_pair(dl_da.detach(), dl_db.detach());
         },
     }};

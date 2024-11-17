@@ -21,22 +21,26 @@ void print_mat(T mat) {
     std::cout << std::endl;
 }
 
-auto f(auto x) {
-    // f(x) = (x-2)^2
-    return pow((x - 2), 2);
+auto f(auto x, auto y) {
+    // f(x) = (x-2)^2 + (y-3)^2
+    return pow(x - 2, 2) + pow(y - 3, 2);
 }
 
 int main() {
     auto x = Tensor<ScalarShape, float>{0.0};
+    auto y = Tensor<ScalarShape, float>{0.0};
 
     int epochs = 100;
     double lr = 0.1;
 
     for (int i = 0; i < epochs; i++) {
-        auto y = f(x);
-        auto dy_dx = backward(y, x);
-        x = x - lr * dy_dx;
+        auto z = f(x, y);
+        auto dz_dx = backward(z, x);
+        auto dz_dy = backward(z, y);
+        x = (x - lr * dz_dx).detach();
+        y = (y - lr * dz_dy).detach();
     }
 
-    std::cout << x.value() << std::endl;
+    std::cout << "x: " << x.value() << std::endl;
+    std::cout << "y: " << y.value() << std::endl;
 }
