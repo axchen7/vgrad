@@ -29,6 +29,10 @@ void backward_rec(const std::shared_ptr<Node> node, GradientHolder<Param>& grad_
     if constexpr (IsUnaryNode<Node>) {
         auto d_loss_d_in = node->grad_fn(d_loss_d_out);
         backward_rec(node->in_node, grad_holder, d_loss_d_in);
+    } else if constexpr (IsBinaryNode<Node>) {
+        auto [d_loss_d_in1, d_loss_d_in2] = node->grad_fn(d_loss_d_out);
+        backward_rec(node->in_node1, grad_holder, d_loss_d_in1);
+        backward_rec(node->in_node2, grad_holder, d_loss_d_in2);
     }
 }
 

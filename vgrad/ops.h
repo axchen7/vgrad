@@ -37,10 +37,30 @@ auto unary_op(const A& a, auto forward, auto backward) {
 
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
-auto binary_op(const A& a, const B& b, auto op) {
-    Tensor<typename A::Shape, typename A::DType> result;
+auto binary_op(const A& a, const B& b, auto forward, auto backward) {
+    using Node = BinaryOpNode<typename A::Node, typename B::Node, typename A::Shape, typename A::DType>;
+
+    Tensor<typename A::Shape, typename A::DType, Node> result{Node{
+        a.get_node(),
+        b.get_node(),
+        [a, b, backward](const auto& dl_df) {
+            Tensor<typename A::Shape, typename A::DType> df_da;
+            Tensor<typename B::Shape, typename B::DType> df_db;
+            for (Size i = 0; i < A::Shape::flat_size; i++) {
+                auto [entry1, entry2] = backward(a.flat_view()[i]);
+
+                df_da._init_entry(i, entry1);
+                df_db._init_entry(i, entry2);
+            }
+
+            auto dl_da = dl_df * df_da;
+            auto dl_db = dl_df * df_db;
+            return std::make_pair(dl_da.detach(), dl_db.detach());
+        },
+    }};
+
     for (Size i = 0; i < A::Shape::flat_size; i++) {
-        result._init_entry(i, op(a.flat_view()[i], b.flat_view()[i]));
+        result._init_entry(i, forward(a.flat_view()[i], b.flat_view()[i]));
     }
     return result;
 }
@@ -173,25 +193,26 @@ auto relu(const A& a) {
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator+(const A& a, const B& b) {
-    return binary_op(a, b, [](auto x, auto y) { return x + y; });
+    return binary_op(a, b, [](auto x, auto y) { return x + y; }, [](auto x, auto y) { return std::make_pair(1, 1); });
 }
 
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator-(const A& a, const B& b) {
-    return binary_op(a, b, [](auto x, auto y) { return x - y; });
+    return binary_op(a, b, [](auto x, auto y) { return x - y; }, [](auto x, auto y) { return std::make_pair(1, -1); });
 }
 
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator*(const A& a, const B& b) {
-    return binary_op(a, b, [](auto x, auto y) { return x * y; });
+    return binary_op(a, b, [](auto x, auto y) { return x * y; }, [](auto x, auto y) { return std::make_pair(y, x); });
 }
 
 template <IsFloatTensor A, IsFloatTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator/(const A& a, const B& b) {
-    return binary_op(a, b, [](auto x, auto y) { return x / y; });
+    return binary_op(
+        a, b, [](auto x, auto y) { return x / y; }, [](auto x, auto y) { return std::make_pair(1 / y, -x / (y * y)); });
 }
 
 template <IsTensor A>
