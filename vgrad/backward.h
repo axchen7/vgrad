@@ -46,7 +46,9 @@ auto backward(const RootTensor& out, const Param& param) {
 
 template <IsScalarTensor RootTensor, IsTensor... Params>
     requires IsFloatTensor<RootTensor> && (IsFloatTensor<Params> && ...)
-auto backward(const RootTensor& out, const Params&... params) {}
+auto backward(const RootTensor& out, const Params&... params) {
+    return std::make_tuple(backward(out, params)...);
+}
 
 }  // namespace vgrad
 

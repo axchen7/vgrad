@@ -35,8 +35,7 @@ int main() {
 
     for (int i = 0; i < epochs; i++) {
         auto z = f(x, y);
-        auto dz_dx = backward(z, x);
-        auto dz_dy = backward(z, y);
+        auto [dz_dx, dz_dy] = backward(z, x, y);
         x = (x - lr * dz_dx).detach();
         y = (y - lr * dz_dy).detach();
     }
