@@ -64,20 +64,13 @@ auto binary_op(const A& a, const B& b, auto forward, auto backward) {
 }
 
 template <Index I1, Index I2, IsTensor A>
-auto transpose(const A& a) {
+auto transpose_no_grad(const A& a) {
     constexpr auto idx1 = A::Shape::template normalize_index<I1>();
     constexpr auto idx2 = A::Shape::template normalize_index<I2>();
 
     using NewShape = typename A::Shape::template Transpose<I1, I2>;
-    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
 
-    Tensor<NewShape, typename A::DType, Node> result{Node{
-        a.get_node(),
-        [](const auto& dl_df) {
-            auto dl_da = transpose<I1, I2>(dl_df);
-            return dl_da.detach();
-        },
-    }};
+    Tensor<NewShape, typename A::DType> result;
 
     for (Size i = 0; i < A::Shape::flat_size; i++) {
         auto indices = A::Shape::to_indices(i);
@@ -87,6 +80,22 @@ auto transpose(const A& a) {
     }
 
     return result;
+}
+
+template <Index I1, Index I2, IsTensor A>
+auto transpose(const A& a) {
+    auto raw_result = transpose_no_grad<I1, I2>(a);
+
+    using NewShape = typename decltype(raw_result)::Shape;
+    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
+
+    return Tensor<NewShape, typename A::DType, Node>{
+        raw_result.get_data(),
+        Node{
+            a.get_node(),
+            [](const auto& dl_df) { return transpose_no_grad<I1, I2>(dl_df); },
+        },
+    };
 }
 
 // Remove a singleton dimension from a tensor.

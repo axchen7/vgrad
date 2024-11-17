@@ -75,6 +75,8 @@ class Tensor {
 
     auto detach() const { return Detached{data_}; }
 
+    const auto get_data() const { return data_; }
+
     const auto get_node() const { return node_; }
 
     void _init_entry(Size index, DType value) { (*data_)[index] = value; }
