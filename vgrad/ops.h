@@ -117,13 +117,13 @@ template <Index I, IsTensor A>
     requires(A::Shape::template At<I>::value == 1)
 auto squeeze(const A& a) {
     using NewShape = typename A::Shape::template Remove<I>;
-    return a.template reshape<NewShape>();
+    return Tensor<NewShape, typename A::DType>{a.get_data()};
 }
 
 template <Index I, IsTensor A>
 auto unsqueeze(const A& a) {
     using NewShape = typename A::Shape::template Insert<I, OneDimension>;
-    return a.template reshape<NewShape>();
+    return Tensor<NewShape, typename A::DType>{a.get_data()};
 }
 
 // Repeat a singleton dimension of a tensor to make it of dimension Dim.

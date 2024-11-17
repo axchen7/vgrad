@@ -46,13 +46,6 @@ class Tensor {
         assert(data_->size() == Shape::flat_size);
     }
 
-    template <IsShape NewShape>
-        requires(NewShape::flat_size == Shape::flat_size)
-    auto reshape() const {
-        // TODO: backprop
-        return Tensor<NewShape, DType>{data_};
-    }
-
     const FlatData& flat_view() const { return *reinterpret_cast<const FlatData*>(data_->data()); }
 
     const NestedData& nested_view() const
