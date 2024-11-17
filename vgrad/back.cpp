@@ -27,19 +27,14 @@ auto f(auto x, auto y) {
 }
 
 int main() {
-    auto x = Tensor<ScalarShape, float>{0.0};
-    auto y = Tensor<ScalarShape, float>{0.0};
+    // auto x = Tensor<ScalarShape, float>{3};
+    // auto y = 2 * pow(x, 2) + 9 * pow(x, 7);
+    // auto dy_dx = backward(y, x);
+    // std::cout << "y: " << y.value() << std::endl;
+    // std::cout << "dy/dx: " << dy_dx.value() << std::endl;
 
-    int epochs = 100;
-    double lr = 0.1;
-
-    for (int i = 0; i < epochs; i++) {
-        auto z = f(x, y);
-        auto [dz_dx, dz_dy] = backward(z, x, y);
-        x = (x - lr * dz_dx).detach();
-        y = (y - lr * dz_dy).detach();
-    }
-
-    std::cout << "x: " << x.value() << std::endl;
-    std::cout << "y: " << y.value() << std::endl;
+    auto x = randn<float, MakeShape<Dimension<2>, Dimension<2>>>();
+    auto y = transpose<0, 1>(x);
+    print_mat(x);
+    print_mat(y);
 }

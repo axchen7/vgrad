@@ -14,7 +14,7 @@ concept TensorBinaryOpCompatible = TensorDTypeCompatible<A, B> && TensorShapeCom
 using OneDimension = Dimension<1>;  // for unsqueeze
 
 template <IsTensor A>
-auto unary_op(const A& a, auto forward, auto backward) {
+auto _unary_op(const A& a, auto forward, auto backward) {
     using Node = UnaryOpNode<typename A::Node, typename A::Shape, typename A::DType>;
 
     Tensor<typename A::Shape, typename A::DType, Node> result{Node{
@@ -37,7 +37,7 @@ auto unary_op(const A& a, auto forward, auto backward) {
 
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
-auto binary_op(const A& a, const B& b, auto forward, auto backward) {
+auto _binary_op(const A& a, const B& b, auto forward, auto backward) {
     using Node = BinaryOpNode<typename A::Node, typename B::Node, typename A::Shape, typename A::DType>;
 
     Tensor<typename A::Shape, typename A::DType, Node> result{Node{
@@ -63,8 +63,22 @@ auto binary_op(const A& a, const B& b, auto forward, auto backward) {
     return result;
 }
 
+// Reduce the last dimension of a tensor.
+template <IsTensor A>
+auto _reduce(const A& a, auto op) {
+    using LastDim = typename A::Shape::template At<-1>;
+    using NewShape = typename A::Shape::template Remove<-1>;
+    Tensor<NewShape, typename A::DType> result;
+
+    for (Size i = 0; i < NewShape::flat_size; i++) {
+        std::span<const typename A::DType> slice{a.flat_view().begin() + i * LastDim::value, LastDim::value};
+        result._init_entry(i, op(slice));
+    }
+    return result;
+}
+
 template <Index I1, Index I2, IsTensor A>
-auto transpose_no_grad(const A& a) {
+auto _transpose_no_grad(const A& a) {
     constexpr auto idx1 = A::Shape::template normalize_index<I1>();
     constexpr auto idx2 = A::Shape::template normalize_index<I2>();
 
@@ -84,7 +98,7 @@ auto transpose_no_grad(const A& a) {
 
 template <Index I1, Index I2, IsTensor A>
 auto transpose(const A& a) {
-    auto raw_result = transpose_no_grad<I1, I2>(a);
+    auto raw_result = _transpose_no_grad<I1, I2>(a);
 
     using NewShape = typename decltype(raw_result)::Shape;
     using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
@@ -93,7 +107,7 @@ auto transpose(const A& a) {
         raw_result.get_data(),
         Node{
             a.get_node(),
-            [](const auto& dl_df) { return transpose_no_grad<I1, I2>(dl_df); },
+            [](const auto& dl_df) { return _transpose_no_grad<I1, I2>(dl_df); },
         },
     };
 }
@@ -131,20 +145,6 @@ auto repeat(const A& a) {
     return result;
 }
 
-// Reduce the last dimension of a tensor.
-template <IsTensor A>
-auto reduce(const A& a, auto op) {
-    using LastDim = typename A::Shape::template At<-1>;
-    using NewShape = typename A::Shape::template Remove<-1>;
-    Tensor<NewShape, typename A::DType> result;
-
-    for (Size i = 0; i < NewShape::flat_size; i++) {
-        std::span<const typename A::DType> slice{a.flat_view().begin() + i * LastDim::value, LastDim::value};
-        result._init_entry(i, op(slice));
-    }
-    return result;
-}
-
 template <IsTensor A, IsTensor B>
     requires TensorDTypeCompatible<A, B> && TensorMatmulCompatible<A, B>
 auto matmul(const A& a, const B& b) {
@@ -174,97 +174,97 @@ auto matmul(const A& a, const B& b) {
 
 template <IsTensor A>
 auto operator-(const A& a) {
-    return unary_op(a, [](auto x) { return -x; }, [](auto x) { return -x; });
+    return _unary_op(a, [](auto x) { return -x; }, [](auto x) { return -x; });
 }
 
 template <IsFloatTensor A>
 auto exp(const A& a) {
-    return unary_op(a, [](auto x) { return std::exp(x); }, [](auto x) { return std::exp(x); });
+    return _unary_op(a, [](auto x) { return std::exp(x); }, [](auto x) { return std::exp(x); });
 }
 
 template <IsFloatTensor A>
 auto log(const A& a) {
-    return unary_op(a, [](auto x) { return std::log(x); }, [](auto x) { return 1 / x; });
+    return _unary_op(a, [](auto x) { return std::log(x); }, [](auto x) { return 1 / x; });
 }
 
 template <IsTensor A>
 auto pow(const A& a, typename A::DType b) {
-    return unary_op(a, [b](auto x) { return std::pow(x, b); }, [b](auto x) { return b * std::pow(x, b - 1); });
+    return _unary_op(a, [b](auto x) { return std::pow(x, b); }, [b](auto x) { return b * std::pow(x, b - 1); });
 }
 
 template <IsFloatTensor A>
 auto relu(const A& a) {
-    return unary_op(a, [](auto x) { return x > 0 ? x : 0; }, [](auto x) { return x > 0 ? 1 : 0; });
+    return _unary_op(a, [](auto x) { return x > 0 ? x : 0; }, [](auto x) { return x > 0 ? 1 : 0; });
 }
 
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator+(const A& a, const B& b) {
-    return binary_op(a, b, [](auto x, auto y) { return x + y; }, [](auto x, auto y) { return std::make_pair(1, 1); });
+    return _binary_op(a, b, [](auto x, auto y) { return x + y; }, [](auto x, auto y) { return std::make_pair(1, 1); });
 }
 
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator-(const A& a, const B& b) {
-    return binary_op(a, b, [](auto x, auto y) { return x - y; }, [](auto x, auto y) { return std::make_pair(1, -1); });
+    return _binary_op(a, b, [](auto x, auto y) { return x - y; }, [](auto x, auto y) { return std::make_pair(1, -1); });
 }
 
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator*(const A& a, const B& b) {
-    return binary_op(a, b, [](auto x, auto y) { return x * y; }, [](auto x, auto y) { return std::make_pair(y, x); });
+    return _binary_op(a, b, [](auto x, auto y) { return x * y; }, [](auto x, auto y) { return std::make_pair(y, x); });
 }
 
 template <IsFloatTensor A, IsFloatTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator/(const A& a, const B& b) {
-    return binary_op(
+    return _binary_op(
         a, b, [](auto x, auto y) { return x / y; }, [](auto x, auto y) { return std::make_pair(1 / y, -x / (y * y)); });
 }
 
 template <IsTensor A>
 auto operator+(const A& a, typename A::DType b) {
-    return unary_op(a, [b](auto x) { return x + b; }, [](auto x) { return 1; });
+    return _unary_op(a, [b](auto x) { return x + b; }, [](auto x) { return 1; });
 }
 
 template <IsTensor B>
 auto operator+(typename B::DType a, const B& b) {
-    return unary_op(b, [a](auto x) { return a + x; }, [](auto x) { return 1; });
+    return _unary_op(b, [a](auto x) { return a + x; }, [](auto x) { return 1; });
 }
 
 template <IsTensor A>
 auto operator-(const A& a, typename A::DType b) {
-    return unary_op(a, [b](auto x) { return x - b; }, [](auto x) { return 1; });
+    return _unary_op(a, [b](auto x) { return x - b; }, [](auto x) { return 1; });
 }
 
 template <IsTensor B>
 auto operator-(typename B::DType a, const B& b) {
-    return unary_op(b, [a](auto x) { return a - x; }, [](auto x) { return -1; });
+    return _unary_op(b, [a](auto x) { return a - x; }, [](auto x) { return -1; });
 }
 
 template <IsTensor A>
 auto operator*(const A& a, typename A::DType b) {
-    return unary_op(a, [b](auto x) { return x * b; }, [b](auto x) { return b; });
+    return _unary_op(a, [b](auto x) { return x * b; }, [b](auto x) { return b; });
 }
 
 template <IsTensor B>
 auto operator*(typename B::DType a, const B& b) {
-    return unary_op(b, [a](auto x) { return a * x; }, [a](auto x) { return a; });
+    return _unary_op(b, [a](auto x) { return a * x; }, [a](auto x) { return a; });
 }
 
 template <IsFloatTensor A>
 auto operator/(const A& a, typename A::DType b) {
-    return unary_op(a, [b](auto x) { return x / b; }, [b](auto x) { return 1 / b; });
+    return _unary_op(a, [b](auto x) { return x / b; }, [b](auto x) { return 1 / b; });
 }
 
 template <IsFloatTensor B>
 auto operator/(typename B::DType a, const B& b) {
-    return unary_op(b, [a](auto x) { return a / x; }, [a](auto x) { return -a / (x * x); });
+    return _unary_op(b, [a](auto x) { return a / x; }, [a](auto x) { return -a / (x * x); });
 }
 
 template <IsTensor A>
 auto sum(const A& a) {
-    return reduce(a, [](std::span<const typename A::DType> x) {
+    return _reduce(a, [](std::span<const typename A::DType> x) {
         typename A::DType sum = 0;
         for (auto i : x) sum += i;
         return sum;
@@ -273,7 +273,7 @@ auto sum(const A& a) {
 
 template <IsTensor A>
 auto prod(const A& a) {
-    return reduce(a, [](std::span<const typename A::DType> x) {
+    return _reduce(a, [](std::span<const typename A::DType> x) {
         typename A::DType prod = 1;
         for (auto i : x) prod *= i;
         return prod;
