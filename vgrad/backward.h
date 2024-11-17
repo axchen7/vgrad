@@ -13,18 +13,20 @@ struct GradientHolder {
     const T tensor;
     typename T::Detached gradient;
 
-    GradientHolder(const T& tensor) : tensor{tensor}, gradient{zeros_like(T)} {}
+    GradientHolder(const T& tensor) : tensor{tensor}, gradient{zeros_like(tensor)} {}
 };
 
-template <IsTensor T>
-void backward_rec(const std::shared_pointer<T::Node> node, const GradientHolder<T>& grad_holder,
-                  const T::Detached& d_loss_d_out) {
-    if (grad_holder.tensor.get_node() == node) {
-        grad_holder.gradient = (grad_holder.gradient + d_loss_d_out).detach();
-        return;
+template <IsNode Node, IsTensor Param>
+void backward_rec(const std::shared_ptr<Node> node, GradientHolder<Param>& grad_holder,
+                  const Tensor<typename Node::OutShape, typename Node::DType>& d_loss_d_out) {
+    if constexpr (std::is_same_v<typename Param::Node, Node>) {
+        if (grad_holder.tensor.get_node() == node) {
+            grad_holder.gradient = (grad_holder.gradient + d_loss_d_out).detach();
+            return;
+        }
     }
 
-    if constexpr (T::is_unary_node) {
+    if constexpr (IsUnaryNode<Node>) {
         auto d_loss_d_in = node->grad_fn(d_loss_d_out);
         backward_rec(node->in_node, grad_holder, d_loss_d_in);
     }
@@ -33,8 +35,9 @@ void backward_rec(const std::shared_pointer<T::Node> node, const GradientHolder<
 template <IsScalarTensor RootTensor, IsTensor Param>
     requires IsFloatTensor<RootTensor> && IsFloatTensor<Param>
 auto backward(const RootTensor& out, const Param& param) {
-    GradientHolder<RootTensor> grad{};
-    backward_rec(out);
+    GradientHolder<Param> grad_holder{param};
+    backward_rec(out.get_node(), grad_holder, ones_like(out));
+    return grad_holder.gradient;
 }
 
 template <IsScalarTensor RootTensor, IsTensor... Params>

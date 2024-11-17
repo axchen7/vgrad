@@ -160,6 +160,11 @@ auto log(const A& a) {
     return unary_op(a, [](auto x) { return std::log(x); }, [](auto x) { return 1 / x; });
 }
 
+template <IsTensor A>
+auto pow(const A& a, typename A::DType b) {
+    return unary_op(a, [b](auto x) { return std::pow(x, b); }, [b](auto x) { return b * std::pow(x, b - 1); });
+}
+
 template <IsFloatTensor A>
 auto relu(const A& a) {
     return unary_op(a, [](auto x) { return x > 0 ? x : 0; }, [](auto x) { return x > 0 ? 1 : 0; });
