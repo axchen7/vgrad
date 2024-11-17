@@ -1,45 +1,45 @@
-#include <iostream>
-
-#include "create_tensor.h"
-#include "ops.h"
-#include "shape.h"
-#include "tensor.h"
-
-using namespace vgrad;
-
-template <IsTensor T>
-void print_mat(T mat) {
-    typename T::Shape shape;
-    static_assert(shape.rank == 2);
-    for (Size i = 0; i < shape.template at<0>().value; i++) {
-        for (Size j = 0; j < shape.template at<1>().value; j++) {
-            std::cout << mat[i][j] << " ";
-        }
-        std::cout << std::endl;
-    }
-    std::cout << std::endl;
-}
-
-int main() {
-    // ----- STUFF 1 -----
-
-    using ImgSize = Dimension<2>;
-
-    auto img1 = vgrad::randn<float, MakeShape<ImgSize, ImgSize>>();
-    auto img2 = vgrad::eye<float, ImgSize>();
-
-    auto sum = img1 + img2;
-
-    for (int i = 0; i < 1000; i++) {
-        sum = sum + vgrad::randn<float, MakeShape<ImgSize, ImgSize>>();
-    }
-
-    sum = sum / (1000 * vgrad::ones_like(sum));
-
-    sum = vgrad::log(sum);
-    sum = vgrad::exp(sum);
-
-    print_mat(sum);
+//#include <iostream>
+//
+//#include "create_tensor.h"
+//#include "ops.h"
+//#include "shape.h"
+//#include "tensor.h"
+//
+//using namespace vgrad;
+//
+//template <IsTensor T>
+//void print_mat(T mat) {
+//    typename T::Shape shape;
+//    static_assert(shape.rank == 2);
+//    for (Size i = 0; i < shape.template at<0>().value; i++) {
+//        for (Size j = 0; j < shape.template at<1>().value; j++) {
+//            std::cout << mat[i][j] << " ";
+//        }
+//        std::cout << std::endl;
+//    }
+//    std::cout << std::endl;
+//}
+//
+//int main() {
+//    // ----- STUFF 1 -----
+//
+//    using ImgSize = Dimension<2>;
+//
+//    auto img1 = vgrad::randn<float, MakeShape<ImgSize, ImgSize>>();
+//    auto img2 = vgrad::eye<float, ImgSize>();
+//
+//    auto sum = img1 + img2;
+//
+//    for (int i = 0; i < 1000; i++) {
+//        sum = sum + vgrad::randn<float, MakeShape<ImgSize, ImgSize>>();
+//    }
+//
+//    sum = sum / (1000 * vgrad::ones_like(sum));
+//
+//    sum = vgrad::log(sum);
+//    sum = vgrad::exp(sum);
+//
+//    print_mat(sum);
 
     // ----- STUFF 2 -----
 
