@@ -160,14 +160,21 @@ auto _reduce_last(const A& a, auto forward, auto backward) {
     return result;
 }
 
-template <Index I, IsTensor A>
+template <Index I, bool KeepDim, IsTensor A>
 auto _reduce(const A& a, auto forward, auto backward) {
     // pivot index I to the last dimension
     // (must use normalized idx because we change the rank)
     constexpr auto idx = A::Shape::template normalize_index<I>();
     auto b = squeeze<idx>(transpose<idx, -1>(unsqueeze<A::Shape::rank>(a)));
 
-    return _reduce_last(b, forward, backward);
+    auto reduced = _reduce_last(b, forward, backward);
+
+    if constexpr (KeepDim) {
+        using RemovedDim = typename A::Shape::template At<idx>;
+        return repeat<idx, RemovedDim>(unsqueeze<idx>(reduced));
+    } else {
+        return reduced;
+    }
 }
 
 // Repeat a singleton dimension of a tensor to make it of dimension Dim.
@@ -327,10 +334,10 @@ auto operator/(typename B::DType a, const B& b) {
     return _unary_op(b, [a](auto x) { return a / x; }, [a](auto x) { return -a / (x * x); });
 }
 
-template <Index I = -1, IsTensor A>
+template <Index I = -1, bool KeepDim = false, IsTensor A>
     requires IsValidIndex<typename A::Shape, I>
 auto sum(const A& a) {
-    return _reduce<I>(
+    return _reduce<I, KeepDim>(
         a,
         [](auto x) {
             typename A::DType sum = 0;
@@ -345,10 +352,10 @@ auto sum(const A& a) {
         });
 }
 
-template <Index I = -1, IsTensor A>
+template <Index I = -1, bool KeepDim = false, IsTensor A>
     requires IsValidIndex<typename A::Shape, I>
 auto prod(const A& a) {
-    return _reduce<I>(
+    return _reduce<I, KeepDim>(
         a,
         [](std::span<const typename A::DType> x) {
             typename A::DType prod = 1;
@@ -371,6 +378,13 @@ template <IsTensor A>
 auto mean(const A& a) {
     using LastDim = typename A::Shape::template At<-1>;
     return sum(a) / LastDim::value;
+}
+
+template <Index I = -1, IsTensor A>
+auto softmax(const A& a) {
+    auto exp_a = exp(a);
+    auto sum_exp_a = sum<I, true>(exp_a);
+    return exp_a / sum_exp_a;
 }
 
 }  // namespace vgrad
