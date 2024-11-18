@@ -138,6 +138,15 @@ struct ScalarShape {
     static constexpr bool is_shape = true;
     static constexpr Size rank = 0;
     static constexpr Size flat_size = 1;
+
+    template <Index I, IsDimension Dim>
+        requires(I == 0)
+    static constexpr auto insert() {
+        return Shape<Dim, ScalarShape>{};
+    }
+
+    template <Index I, IsDimension Dim>
+    using Insert = decltype(insert<I, Dim>());
 };
 
 constexpr auto make_shape() { return ScalarShape{}; }
