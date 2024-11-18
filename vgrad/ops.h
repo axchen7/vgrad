@@ -63,20 +63,6 @@ auto _binary_op(const A& a, const B& b, auto forward, auto backward) {
     return result;
 }
 
-// Reduce the last dimension of a tensor.
-template <IsTensor A>
-auto _reduce(const A& a, auto op) {
-    using LastDim = typename A::Shape::template At<-1>;
-    using NewShape = typename A::Shape::template Remove<-1>;
-    Tensor<NewShape, typename A::DType> result;  // TODO backprop
-
-    for (Size i = 0; i < NewShape::flat_size; i++) {
-        std::span<const typename A::DType> slice{a.flat_view().begin() + i * LastDim::value, LastDim::value};
-        result._init_entry(i, op(slice));
-    }
-    return result;
-}
-
 template <Index I1, Index I2, IsTensor A>
 auto _transpose_no_grad(const A& a) {
     using NewShape = typename A::Shape::template Transpose<I1, I2>;
@@ -143,6 +129,45 @@ auto unsqueeze(const A& a) {
             [](const auto& dl_df) { return Tensor<typename A::Shape, typename A::DType>{dl_df.get_data()}; },
         },
     };
+}
+
+template <IsTensor A>
+auto _reduce_last(const A& a, auto forward, auto backward) {
+    using LastDim = typename A::Shape::template At<-1>;
+    using NewShape = typename A::Shape::template Remove<-1>;
+    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
+
+    Tensor<NewShape, typename A::DType, Node> result{Node{
+        a.get_node(),
+        [a, backward](const auto& dl_df) {
+            Tensor<typename A::Shape, typename A::DType> dl_da;
+
+            for (Size i = 0; i < NewShape::flat_size; i++) {
+                std::span<const typename A::DType> slice{a.flat_view().begin() + i * LastDim::value, LastDim::value};
+                auto df_da = backward(slice);  // holds a row
+                for (Size j = 0; j < LastDim::value; j++) {
+                    dl_da._init_entry(i * LastDim::value + j, dl_df.flat_view()[i] * df_da[j]);
+                }
+            }
+            return dl_da;
+        },
+    }};
+
+    for (Size i = 0; i < NewShape::flat_size; i++) {
+        std::span<const typename A::DType> slice{a.flat_view().begin() + i * LastDim::value, LastDim::value};
+        result._init_entry(i, forward(slice));
+    }
+    return result;
+}
+
+template <Index I, IsTensor A>
+auto _reduce(const A& a, auto forward, auto backward) {
+    // pivot index I to the last dimension
+    // (must use normalized idx because we first increase the rank)
+    constexpr auto idx = A::Shape::template normalize_index<I>();
+    auto b = squeeze<idx>(transpose<idx, -1>(unsqueeze<A::Shape::rank>(a)));
+
+    return _reduce_last(b, forward, backward);
 }
 
 // Repeat a singleton dimension of a tensor to make it of dimension Dim.
@@ -281,22 +306,44 @@ auto operator/(typename B::DType a, const B& b) {
     return _unary_op(b, [a](auto x) { return a / x; }, [a](auto x) { return -a / (x * x); });
 }
 
-template <IsTensor A>
+template <Index I = -1, IsTensor A>
+    requires IsValidIndex<typename A::Shape, I>
 auto sum(const A& a) {
-    return _reduce(a, [](std::span<const typename A::DType> x) {
-        typename A::DType sum = 0;
-        for (auto i : x) sum += i;
-        return sum;
-    });
+    return _reduce<I>(
+        a,
+        [](auto x) {
+            typename A::DType sum = 0;
+            for (auto i : x) sum += i;
+            return sum;
+        },
+        [](auto x) {
+            using Dim = typename A::Shape::template At<I>;
+            std::array<typename A::DType, Dim::value> row;
+            row.fill(1);
+            return row;
+        });
 }
 
-template <IsTensor A>
+template <Index I = -1, IsTensor A>
+    requires IsValidIndex<typename A::Shape, I>
 auto prod(const A& a) {
-    return _reduce(a, [](std::span<const typename A::DType> x) {
-        typename A::DType prod = 1;
-        for (auto i : x) prod *= i;
-        return prod;
-    });
+    return _reduce<I>(
+        a,
+        [](std::span<const typename A::DType> x) {
+            typename A::DType prod = 1;
+            for (auto i : x) prod *= i;
+            return prod;
+        },
+        [](auto x) {
+            using Dim = typename A::Shape::template At<I>;
+            typename A::DType prod = 1;
+            for (auto i : x) prod *= i;
+            std::array<typename A::DType, Dim::value> row;
+            for (Size i = 0; i < Dim::value; i++) {
+                row[i] = prod / x[i];
+            }
+            return row;
+        });
 }
 
 template <IsTensor A>
