@@ -11,6 +11,9 @@ struct Dimension {
     static constexpr Size value = V;
 };
 
+template <typename A, Index I>
+concept IsValidIndex = IsShape<A> && ((I >= 0 && I < A::rank) || ((I + A::rank) >= 0 && (I + A::rank) < A::rank));
+
 template <typename Outer, typename Inner>
 struct Shape {};
 
@@ -25,15 +28,9 @@ struct Shape<Outer, Inner> {
     static constexpr Size flat_size = Outer::value * Inner::flat_size;
 
     template <Index I>
+        requires IsValidIndex<Shape<Outer, Inner>, I>
     static constexpr Size normalize_index() {
-        if constexpr (I < 0) {
-            constexpr auto i = rank + I;
-            static_assert(i >= 0 && i < rank, "Invalid index");
-            return i;
-        } else {
-            static_assert(I >= 0 && I < rank, "Invalid index");
-            return I;
-        }
+        return I < 0 ? rank + I : I;
     }
 
     template <Index I>
