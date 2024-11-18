@@ -9,9 +9,9 @@
 using namespace vgrad;
 
 template <IsTensor T>
+    requires(T::Shape::rank == 2)
 void print_mat(T mat) {
     typename T::Shape shape;
-    static_assert(shape.rank == 2);
     for (Size i = 0; i < shape.template at<0>().value; i++) {
         for (Size j = 0; j < shape.template at<1>().value; j++) {
             std::cout << mat[i][j] << " ";
@@ -33,8 +33,57 @@ int main() {
     // std::cout << "y: " << y.value() << std::endl;
     // std::cout << "dy/dx: " << dy_dx.value() << std::endl;
 
-    auto x = randn<float, MakeShape<Dimension<2>, Dimension<2>>>();
-    auto y = transpose<0, 1>(x);
-    print_mat(x);
-    print_mat(y);
+    // auto x = randn<float, MakeShape<Dimension<2>, Dimension<2>>>();
+    // auto y = unsqueeze<0>(x);
+    // auto z = squeeze<0>(y);
+    // auto l = sum<0>(sum<0>(z));
+
+    // auto f = l.value();
+
+    // print_mat(x);
+    // print_mat(z);
+    // std::cout << l.value() << std::endl;
+
+    // auto dl_dz = backward(l, z);
+    // auto dl_dx = backward(l, x);
+
+    // print_mat(dl_dz);
+    // print_mat(dl_dx);
+
+    // auto x = randn<double, MakeShape<Dimension<2>, Dimension<2>>>();
+    // auto y = prod(x);
+    // auto z = prod(y);
+
+    // auto dz_dx = backward(z, x);
+    // print_mat(dz_dx);
+
+    // auto x = Tensor<ScalarShape, float>{1};
+    // auto y = repeat<0, Dimension<3>>(unsqueeze<0>(x));
+    // auto z = repeat<0, Dimension<3>>(unsqueeze<0>(y));
+    // auto l = sum(sum(z));
+
+    // std::cout << l.value() << std::endl;
+
+    // auto dl_dx = backward(l, x);
+    // auto dl_dy = backward(l, y);
+
+    // std::cout << dl_dx.value() << std::endl;
+    // std::cout << dl_dy[0] << std::endl;
+
+    using D = Dimension<1000>;
+
+    auto x = ones<float, MakeShape<D, D>>();
+    auto y = eye<float, D>();
+
+    // auto z = x * y;
+    auto z = matmul(x, y);
+
+    auto l = sum(sum(z));
+
+    std::cout << l.value() << std::endl;
+
+    auto dl_dx = backward(l, x);
+
+    // print_mat(dl_dx);
+    std::cout << sum(sum(dl_dx)).value() << std::endl;
 }
