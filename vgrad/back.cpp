@@ -70,7 +70,7 @@ int main() {
     // std::cout << dl_dx.value() << std::endl;
     // std::cout << dl_dy[0] << std::endl;
 
-    using D = Dimension<1000>;
+    using D = Dimension<10>;
 
     auto x = ones<float, MakeShape<D, D>>();
     auto y = eye<float, D>();
@@ -84,6 +84,5 @@ int main() {
 
     auto dl_dx = backward(l, x);
 
-    // print_mat(dl_dx);
-    std::cout << sum(sum(dl_dx)).value() << std::endl;
+    print_mat(dl_dx);
 }
