@@ -174,10 +174,30 @@ auto _reduce(const A& a, auto forward, auto backward) {
 template <Index I, IsDimension Dim, IsTensor A>
     requires(A::Shape::template At<I>::value == 1)
 auto repeat(const A& a) {
+    using NewShape = typename A::Shape::template Remove<I>::template Insert<I, Dim>;
+    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
+
     constexpr auto idx = A::Shape::template normalize_index<I>();
 
-    using NewShape = typename A::Shape::template Remove<idx>::template Insert<idx, Dim>;
-    Tensor<NewShape, typename A::DType> result;  // TODO backprop
+    Tensor<NewShape, typename A::DType, Node> result{Node{
+        a.get_node(),
+        [a](const auto& dl_df) {
+            Tensor<typename A::Shape, typename A::DType> dl_da;
+
+            for (Size i = 0; i < A::Shape::flat_size; i++) {
+                typename A::DType dl_da_val = 0;
+
+                auto indices = A::Shape::to_indices(i);
+                for (Size j = 0; j < Dim::value; j++) {
+                    indices[idx] = j;
+                    auto flat_idx = NewShape::to_flat_index(indices);
+                    dl_da_val += dl_df.flat_view()[flat_idx];
+                }
+                dl_da._init_entry(i, dl_da_val);
+            }
+            return dl_da;
+        },
+    }};
 
     for (Size i = 0; i < NewShape::flat_size; i++) {
         auto indices = NewShape::to_indices(i);
