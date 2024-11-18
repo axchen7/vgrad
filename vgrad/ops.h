@@ -79,12 +79,16 @@ auto _reduce(const A& a, auto op) {
 
 template <Index I1, Index I2, IsTensor A>
 auto _transpose_no_grad(const A& a) {
-    constexpr auto idx1 = A::Shape::template normalize_index<I1>();
-    constexpr auto idx2 = A::Shape::template normalize_index<I2>();
-
     using NewShape = typename A::Shape::template Transpose<I1, I2>;
 
+    if constexpr (std::is_same_v<NewShape, typename A::Shape>) {
+        return a;
+    }
+
     Tensor<NewShape, typename A::DType> result;
+
+    constexpr auto idx1 = A::Shape::template normalize_index<I1>();
+    constexpr auto idx2 = A::Shape::template normalize_index<I2>();
 
     for (Size i = 0; i < A::Shape::flat_size; i++) {
         auto indices = A::Shape::to_indices(i);
@@ -92,7 +96,6 @@ auto _transpose_no_grad(const A& a) {
         auto new_idx = NewShape::to_flat_index(indices);
         result._init_entry(new_idx, a.flat_view()[i]);
     }
-
     return result;
 }
 
