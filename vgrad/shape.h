@@ -12,7 +12,10 @@ struct Dimension {
 };
 
 template <typename A, Index I>
-concept IsValidIndex = IsShape<A> && ((I >= 0 && I < A::rank) || ((I + A::rank) >= 0 && (I + A::rank) < A::rank));
+concept IsValidIndex =
+    IsShape<A> &&
+    ((I >= 0 && I < static_cast<Index>(A::rank)) ||
+     ((I + static_cast<Index>(A::rank)) >= 0 && (I + static_cast<Index>(A::rank)) < static_cast<Index>(A::rank)));
 
 template <typename Outer, typename Inner>
 struct Shape {};
