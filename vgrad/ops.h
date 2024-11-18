@@ -68,7 +68,7 @@ template <IsTensor A>
 auto _reduce(const A& a, auto op) {
     using LastDim = typename A::Shape::template At<-1>;
     using NewShape = typename A::Shape::template Remove<-1>;
-    Tensor<NewShape, typename A::DType> result;
+    Tensor<NewShape, typename A::DType> result;  // TODO backprop
 
     for (Size i = 0; i < NewShape::flat_size; i++) {
         std::span<const typename A::DType> slice{a.flat_view().begin() + i * LastDim::value, LastDim::value};
@@ -149,7 +149,7 @@ auto repeat(const A& a) {
     constexpr auto idx = A::Shape::template normalize_index<I>();
 
     using NewShape = typename A::Shape::template Remove<idx>::template Insert<idx, Dim>;
-    Tensor<NewShape, typename A::DType> result;
+    Tensor<NewShape, typename A::DType> result;  // TODO backprop
 
     for (Size i = 0; i < NewShape::flat_size; i++) {
         auto indices = NewShape::to_indices(i);
