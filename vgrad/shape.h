@@ -83,6 +83,7 @@ struct Shape<Outer, Inner> {
 
     template <Index I1, Index I2>
     static constexpr auto transpose() {
+        // (must use normalized idx because we change the rank)
         constexpr auto i1 = normalize_index<I1>();
         constexpr auto i2 = normalize_index<I2>();
         using D1 = At<i1>;

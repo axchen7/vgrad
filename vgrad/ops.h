@@ -163,7 +163,7 @@ auto _reduce_last(const A& a, auto forward, auto backward) {
 template <Index I, IsTensor A>
 auto _reduce(const A& a, auto forward, auto backward) {
     // pivot index I to the last dimension
-    // (must use normalized idx because we first increase the rank)
+    // (must use normalized idx because we change the rank)
     constexpr auto idx = A::Shape::template normalize_index<I>();
     auto b = squeeze<idx>(transpose<idx, -1>(unsqueeze<A::Shape::rank>(a)));
 
@@ -174,10 +174,11 @@ auto _reduce(const A& a, auto forward, auto backward) {
 template <Index I, IsDimension Dim, IsTensor A>
     requires(A::Shape::template At<I>::value == 1)
 auto repeat(const A& a) {
-    using NewShape = typename A::Shape::template Remove<I>::template Insert<I, Dim>;
-    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
-
+    // (must use normalized idx because we change the rank)
     constexpr auto idx = A::Shape::template normalize_index<I>();
+
+    using NewShape = typename A::Shape::template Remove<I>::template Insert<idx, Dim>;
+    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
 
     Tensor<NewShape, typename A::DType, Node> result{Node{
         a.get_node(),
