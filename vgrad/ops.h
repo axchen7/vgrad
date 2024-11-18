@@ -25,7 +25,7 @@ auto _unary_op(const A& a, auto forward, auto backward) {
                 auto df_da = backward(a.flat_view()[i]);
                 dl_da._init_entry(i, dl_df.flat_view()[i] * df_da);
             }
-            return dl_da.detach();
+            return dl_da;
         },
     }};
 
@@ -53,7 +53,7 @@ auto _binary_op(const A& a, const B& b, auto forward, auto backward) {
                 dl_db._init_entry(i, dl_df.flat_view()[i] * df_db);
             }
 
-            return std::make_pair(dl_da.detach(), dl_db.detach());
+            return std::make_pair(dl_da, dl_db);
         },
     }};
 
