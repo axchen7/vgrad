@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cassert>
+#include <iostream>
 #include <memory>
 
 #include "shape.h"
@@ -99,6 +100,19 @@ class Tensor {
     std::shared_ptr<RawData> data_;
     std::shared_ptr<Node> node_;
 };
+
+template <IsShape Shape, Number DType, typename Node>
+    requires(Shape::rank == 2)
+std::ostream& operator<<(std::ostream& os, const Tensor<Shape, DType, Node>& tensor) {
+    const auto& data = tensor.nested_view();
+    for (const auto& row : data) {
+        for (const auto& elem : row) {
+            os << elem << ' ';
+        }
+        os << '\n';
+    }
+    return os;
+}
 
 template <typename T>
 concept IsTensor = std::is_same_v<T, Tensor<typename T::Shape, typename T::DType, typename T::Node>>;
