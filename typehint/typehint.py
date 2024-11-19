@@ -78,7 +78,7 @@ def main():
     for line in warnings.splitlines():
         # example match from Apple clang version 16.0.0
         # inline.cpp:11:14: note: in instantiation of function template specialization 'typehint::static_print<StringLiteral<5>{"<id_str>"}, StringLiteral<11>{"<type>"}>' requested here
-        match = re.search(r'<StringLiteral<\d+>{"(.+)"}, StringLiteral<\d+>{"(.+)"}>', line)
+        match = re.search(r'<StringLiteral<\d+>{"(.+)"}, StringLiteral<\d+>{"(.+)"}>', line.replace('typehint::StringLiteral', 'StringLiteral'))
 
         if match:
             id_str, type_str = match.groups()
