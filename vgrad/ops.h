@@ -264,6 +264,11 @@ auto pow(const A& a, typename A::DType b) {
     return _unary_op(a, [b](auto x) { return std::pow(x, b); }, [b](auto x) { return b * std::pow(x, b - 1); });
 }
 
+template <IsTensor A>
+auto sqrt(const A& a) {
+    return pow(a, 0.5);
+}
+
 template <IsFloatTensor A>
 auto relu(const A& a) {
     return _unary_op(a, [](auto x) { return x > 0 ? x : 0; }, [](auto x) { return x > 0 ? 1 : 0; });
