@@ -8,7 +8,9 @@ def main():
     extra_flags = ['-fsyntax-only', '-Wunused']
     typehint_id_prefix = '_typehint_id'
     typehint_trigger = "typehint"
-    typehint_print = "TYPEHINT_PRINT_TYPE"
+    typehint_print_val_type = "TYPEHINT_PRINT_VAL_TYPE"
+    typehint_print_using_type = "TYPEHINT_PRINT_USING_TYPE"
+    typehing_type_passthrough = "TYPEHINT_TYPE_PASSTHROUGH"
     temp_file_prefix = "_typehint_temp_"
 
     if len(sys.argv) < 3:
@@ -41,7 +43,15 @@ def main():
             before_eq, sep, after_eq = before_comment.partition('=')
             if sep:
                 expr = after_eq.strip().rstrip(';')
-                line_v2 = f"{before_eq}= {typehint_print}(\"{id_str}\", ({expr}));\n"
+
+                if before_eq.strip().startswith('using'):
+                    print_fn = typehint_print_using_type
+                    expr = f"decltype({typehing_type_passthrough}<{expr}>{{}})::T"
+                else:
+                    print_fn = typehint_print_val_type
+                    expr = f"({expr})"
+
+                line_v2 = f"{before_eq}= {print_fn}(\"{id_str}\", {expr});\n"
                 version2_lines.append(line_v2)
             else:
                 version2_lines.append(line)

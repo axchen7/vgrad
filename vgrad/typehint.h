@@ -4,11 +4,20 @@
 #include <charconv>
 #include <string>
 
-#define TYPEHINT_PRINT_TYPE(label, rval)                                                                               \
+#define TYPEHINT_PRINT_VAL_TYPE(label, rval)                                                                           \
     rval;                                                                                                              \
     typehint::static_print<label,                                                                                      \
                            typehint::to_string_literal<decltype(typehint::passthrough(rval))::typehint_type().size()>( \
                                decltype(typehint::passthrough(rval))::typehint_type())>()
+
+#define TYPEHINT_PRINT_USING_TYPE(label, Type) \
+    Type;                                      \
+    typehint::static_print<label, typehint::to_string_literal<Type::typehint_type().size()>(Type::typehint_type())>()
+
+template <typename _T>
+struct TYPEHINT_TYPE_PASSTHROUGH {
+    using T = _T;
+};
 
 namespace typehint {
 
