@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "ms-python.black-formatter",
+    "ms-vscode.cpptools",
+    "ms-python.python",
+    "emeraldwalk.runonsave"
+  ]
+}
