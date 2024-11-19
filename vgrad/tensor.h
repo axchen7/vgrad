@@ -9,6 +9,21 @@
 
 namespace vgrad {
 
+template <typename DType>
+constexpr std::string dtype_to_string() {
+    if constexpr (std::is_same_v<DType, float>) {
+        return "float";
+    } else if constexpr (std::is_same_v<DType, double>) {
+        return "double";
+    } else if constexpr (std::is_same_v<DType, int>) {
+        return "int";
+    } else if constexpr (std::is_same_v<DType, long>) {
+        return "long";
+    } else {
+        return "unknown";
+    }
+}
+
 template <IsShape _OutShape, Number _DType>
 struct LeafNode {
     static constexpr bool is_node = true;
@@ -73,6 +88,12 @@ class Tensor {
     const auto get_node() const { return node_; }
 
     void _init_entry(Size index, DType value) { (*data_)[index] = value; }
+
+    static constexpr auto typehint_type() const {
+        auto shape = Shape::typehint_type();
+        auto type = dtype_to_string<DType>();
+        return shape + ", " + type;
+    }
 
    private:
     std::shared_ptr<RawData> data_;

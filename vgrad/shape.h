@@ -1,6 +1,7 @@
 #ifndef VGRAD_SHAPE_H_
 #define VGRAD_SHAPE_H_
 
+#include "typehint.h"
 #include "types.h"
 
 namespace vgrad {
@@ -129,10 +130,10 @@ struct Shape<Outer, Inner> {
         return result;
     }
 
-    static constexpr auto as_string() {
-        std::string result = std::to_string(outer.value);
+    static constexpr auto typehint_type() {
+        auto result = typehint::to_string(outer.value);
         if constexpr (Inner::rank > 0) {
-            result += "x" + Inner::as_string();
+            result += "x" + Inner::typehint_type();
         }
         return result;
     }
