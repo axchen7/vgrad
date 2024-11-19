@@ -4,9 +4,10 @@
 #include <charconv>
 #include <string>
 
-#define TYPEHINT_PRINT_TYPE(label, val)                                                               \
-    typehint::static_print<label, typehint::to_string_literal<decltype(val)::typehint_type().size()>( \
-                                      decltype(val)::typehint_type())>()
+#define TYPEHINT_PRINT_TYPE(label, rval)                                                               \
+    rval;                                                                                              \
+    typehint::static_print<label, typehint::to_string_literal<decltype(rval)::typehint_type().size()>( \
+                                      decltype(rval)::typehint_type())>()
 
 namespace typehint {
 
