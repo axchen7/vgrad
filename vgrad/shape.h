@@ -6,12 +6,18 @@
 
 namespace vgrad {
 
-template <Size V>
+template <Size V, typehint::StringLiteral Name = "">
     requires(V > 0)
 struct Dimension {
     static constexpr Size value = V;
 
-    static constexpr auto typehint_type() { return typehint::to_string(value); }
+    static constexpr auto typehint_type() {
+        if constexpr (Name.value[0] == '\0') {
+            return typehint::to_string(value);
+        } else {
+            return std::string{Name.value};
+        }
+    }
 };
 
 template <typename A, Index I>
@@ -135,7 +141,7 @@ struct Shape<Outer, Inner> {
     static constexpr auto typehint_type() {
         auto result = Outer::typehint_type();
         if constexpr (Inner::rank > 0) {
-            result += "x" + Inner::typehint_type();
+            result += " x " + Inner::typehint_type();
         }
         return result;
     }
