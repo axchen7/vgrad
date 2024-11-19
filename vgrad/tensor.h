@@ -89,7 +89,7 @@ class Tensor {
 
     void _init_entry(Size index, DType value) { (*data_)[index] = value; }
 
-    static constexpr auto typehint_type() const {
+    static constexpr auto typehint_type() {
         auto shape = Shape::typehint_type();
         auto type = dtype_to_string<DType>();
         return shape + ", " + type;
