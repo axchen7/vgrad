@@ -12,12 +12,12 @@ def main():
     temp_file_prefix = "_typehint_temp_"
 
     if len(sys.argv) < 3:
-        print("Usage: python typehint.py <source_file> <compiler> [compiler_flags]")
+        print("Usage: python typehint.py <compiler> [compiler_flags] <source_file>")
         sys.exit(1)
 
-    source_file = sys.argv[1]
-    temp_file = temp_file_prefix + source_file
-    compiler_command = sys.argv[2:] + extra_flags
+    source_file = sys.argv[-1]
+    temp_file = os.path.join(os.path.dirname(source_file), temp_file_prefix + os.path.basename(source_file))
+    compiler_command = sys.argv[1:-1] + extra_flags
 
     with open(source_file, 'r') as f:
         lines = f.readlines()

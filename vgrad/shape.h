@@ -152,6 +152,8 @@ struct ScalarShape {
 
     template <Index I, IsDimension Dim>
     using Insert = decltype(insert<I, Dim>());
+
+    static constexpr auto typehint_type() { return std::string{"scalar"}; }
 };
 
 constexpr auto make_shape() { return ScalarShape{}; }
