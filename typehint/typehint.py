@@ -10,7 +10,7 @@ def main():
     typehint_trigger = "typehint"
     typehint_print_val_type = "TYPEHINT_PRINT_VAL_TYPE"
     typehint_print_using_type = "TYPEHINT_PRINT_USING_TYPE"
-    typehing_type_passthrough = "TYPEHINT_TYPE_PASSTHROUGH"
+    typehint_type_passthrough = "TYPEHINT_TYPE_PASSTHROUGH"
     temp_file_prefix = "_typehint_temp_"
 
     if len(sys.argv) < 3:
@@ -46,7 +46,8 @@ def main():
 
                 if before_eq.strip().startswith('using'):
                     print_fn = typehint_print_using_type
-                    expr = f"decltype({typehing_type_passthrough}<{expr}>{{}})::T"
+                    # this hackery is needed because the type expr must be wrapped in () when passed to the macro
+                    expr = f"decltype({typehint_type_passthrough}<{expr}>{{}})::T"
                 else:
                     print_fn = typehint_print_val_type
                     expr = f"({expr})"
