@@ -3,13 +3,13 @@
 
 #include "backward.h"
 
-namespace vgrad {
+namespace vgrad::optim {
 
 template <IsTensor... Params>
     requires(IsFloatTensor<Params> && ...)
 class SGD {
    public:
-    SGD(float learning_rate, Params&... params) : learning_rate_{learning_rate}, params_{params...} {}
+    SGD(float lr, Params&... params) : lr_{lr}, params_{params...} {}
 
     template <IsScalarTensor Loss>
         requires IsFloatTensor<Loss>
@@ -18,17 +18,16 @@ class SGD {
 
         std::apply(
             [&](auto&... params) {
-                std::apply([&](auto&... grads) { ((params = (params - learning_rate_ * grads).detach()), ...); },
-                           grads_tuple);
+                std::apply([&](auto&... grads) { ((params = (params - lr_ * grads).detach()), ...); }, grads_tuple);
             },
             params_);
     }
 
    private:
-    const float learning_rate_;
+    const float lr_;
     std::tuple<Params&...> params_;
 };
 
-}  // namespace vgrad
+}  // namespace vgrad::optim
 
 #endif  // VGRAD_OPTIMIZERS_H_
