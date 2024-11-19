@@ -10,6 +10,8 @@ template <Size V>
     requires(V > 0)
 struct Dimension {
     static constexpr Size value = V;
+
+    static constexpr auto typehint_type() { return typehint::to_string(value); }
 };
 
 template <typename A, Index I>
@@ -131,7 +133,7 @@ struct Shape<Outer, Inner> {
     }
 
     static constexpr auto typehint_type() {
-        auto result = typehint::to_string(outer.value);
+        auto result = Outer::typehint_type();
         if constexpr (Inner::rank > 0) {
             result += "x" + Inner::typehint_type();
         }
