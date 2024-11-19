@@ -4,12 +4,15 @@
 #include <charconv>
 #include <string>
 
-#define TYPEHINT_PRINT_TYPE(label, rval)                                                               \
-    rval;                                                                                              \
-    typehint::static_print<label, typehint::to_string_literal<decltype(rval)::typehint_type().size()>( \
-                                      decltype(rval)::typehint_type())>()
+#define TYPEHINT_PRINT_TYPE(label, rval)                                                                               \
+    rval;                                                                                                              \
+    typehint::static_print<label,                                                                                      \
+                           typehint::to_string_literal<decltype(typehint::passthrough(rval))::typehint_type().size()>( \
+                               decltype(typehint::passthrough(rval))::typehint_type())>()
 
 namespace typehint {
+
+auto passthrough(auto x) { return x; }
 
 // taken from: https://ctrpeach.io/posts/cpp20-string-literal-template-parameters/
 template <std::size_t N>
@@ -36,7 +39,7 @@ constexpr std::string to_string(int v) {
 }
 
 // inspired by: https://stackoverflow.com/a/58834326
-template <auto Label, StringLiteral str>
+template <StringLiteral Label, StringLiteral str>
 constexpr void static_print() {
     auto unused = Label;
 };
