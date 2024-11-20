@@ -26,11 +26,10 @@ template <IsDimension In, IsDimension Out, Number DType, IsDimension Inner>
 class Model {
    public:
     auto forward(auto x) const {
-        auto z1 = layer1.forward(x);   // typehint: [10000 x 128, float]
-        auto a1 = relu(z1);            // typehint: [10000 x 128, float]
-        auto z2 = layer2.forward(a1);  // typehint: [10000 x 10, float]
-        auto out = softmax(z2);        // typehint: [10000 x 10, float]
-        return out;
+        auto o1 = layer1.forward(x);   // typehint: [10000 x 128, float]
+        auto o2 = relu(o1);            // typehint: [10000 x 128, float]
+        auto o3 = layer2.forward(o2);  // typehint: [10000 x 10, float]
+        return o3;
     }
 
     auto params() {
