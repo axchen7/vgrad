@@ -2,6 +2,7 @@
 #define VGRAD_OPS_H_
 
 #include <span>
+#include <stdexcept>
 
 #include "graph.h"
 #include "tensor.h"
@@ -404,11 +405,39 @@ auto mean(const A& a) {
     return sum(a) / LastDim::value;
 }
 
+template <IsDimension Classes, IsTensor A, Number DType = typename A::DType>
+    requires IsIntegralTensor<A>
+auto one_hot(const A& a) {
+    using NewShape = typename A::Shape::template Insert<A::Shape::rank, Classes>;
+
+    auto result = zeros<DType, NewShape>();
+
+    for (Size i = 0; i < A::Shape::flat_size; i++) {
+        auto cur_class = a.flat_view()[i];
+        if (cur_class >= Classes::value) {
+            throw std::invalid_argument("class index out of range");
+        }
+        result._init_entry(i * Classes::value + cur_class, 1);
+    }
+
+    return result;
+}
+
 template <Index I = -1, IsTensor A>
 auto softmax(const A& a) {
     auto exp_a = exp(a);
     auto sum_exp_a = sum<I, true>(exp_a);
     return exp_a / sum_exp_a;
+}
+
+template <IsTensor Logits, IsTensor Target>
+auto cross_entropy(const Logits& logits, const Target& target) {
+    // from https://ml-cheatsheet.readthedocs.io/en/latest/loss_functions.html
+    using Classes = typename Logits::Shape::template At<-1>;
+    auto probs = softmax(logits);
+    auto one_hot_target = one_hot<Classes, Target, typename Logits::DType>(target);
+    auto per_input_cross_entropy = -sum(one_hot_target * log(probs));
+    return mean(per_input_cross_entropy);
 }
 
 }  // namespace vgrad

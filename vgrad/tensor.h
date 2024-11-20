@@ -16,10 +16,10 @@ constexpr std::string dtype_to_string() {
         return "float";
     } else if constexpr (std::is_same_v<DType, double>) {
         return "double";
-    } else if constexpr (std::is_same_v<DType, int>) {
-        return "int";
-    } else if constexpr (std::is_same_v<DType, long>) {
-        return "long";
+    } else if constexpr (std::is_same_v<DType, int32_t>) {
+        return "int32";
+    } else if constexpr (std::is_same_v<DType, int64_t>) {
+        return "int64";
     } else {
         return "unknown";
     }
@@ -116,6 +116,9 @@ std::ostream& operator<<(std::ostream& os, const Tensor<Shape, DType, Node>& ten
 
 template <typename T>
 concept IsTensor = std::is_same_v<T, Tensor<typename T::Shape, typename T::DType, typename T::Node>>;
+
+template <typename A>
+concept IsIntegralTensor = IsTensor<A> && std::is_integral_v<typename A::DType>;
 
 template <typename A>
 concept IsFloatTensor = IsTensor<A> && std::is_floating_point_v<typename A::DType>;
