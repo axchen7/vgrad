@@ -405,6 +405,22 @@ auto mean(const A& a) {
     return sum(a) / LastDim::value;
 }
 
+template <Index I = -1, bool KeepDim = false, IsTensor A>
+    requires IsValidIndex<typename A::Shape, I>
+auto max(const A& a) {
+    return _reduce<I, KeepDim>(
+        a, [](auto x) { return *std::max_element(x.begin(), x.end()); },
+        [](auto x) {
+            // all 0s except 1 at the max element
+            using Dim = typename A::Shape::template At<I>;
+            std::array<typename A::DType, Dim::value> row;
+            row.fill(0);
+            auto max_it = std::max_element(x.begin(), x.end());
+            row[std::distance(x.begin(), max_it)] = 1;
+            return row;
+        });
+}
+
 template <IsDimension Classes, IsTensor A, Number DType = typename A::DType>
     requires IsIntegralTensor<A>
 auto one_hot(const A& a) {
