@@ -421,6 +421,12 @@ auto max(const A& a) {
         });
 }
 
+template <Index I = -1, bool KeepDim = false, IsTensor A>
+    requires IsValidIndex<typename A::Shape, I>
+auto min(const A& a) {
+    return -max<I, KeepDim>(-a);
+}
+
 template <IsDimension Classes, IsTensor A, Number DType = typename A::DType>
     requires IsIntegralTensor<A>
 auto one_hot(const A& a) {
