@@ -9,7 +9,9 @@ template <IsTensor... Params>
     requires(IsFloatTensor<Params> && ...)
 class SGD {
    public:
-    SGD(const float lr, Params&... params) : lr_{lr}, params_{params...} {}
+    SGD(const float lr, Params&... params) : SGD(lr, std::make_tuple(std::ref(params)...)) {}
+
+    SGD(const float lr, std::tuple<Params&...> params) : lr_{lr}, params_{params} {}
 
     template <IsScalarTensor Loss>
         requires IsFloatTensor<Loss>
@@ -32,15 +34,20 @@ template <IsTensor... Params>
     requires(IsFloatTensor<Params> && ...)
 class Adam {
    public:
+    Adam(const float lr, Params&... params) : Adam(lr, std::make_tuple(std::ref(params)...)) {}
+
     // default parameters from https://pytorch.org/docs/stable/generated/torch.optim.Adam.html
-    Adam(const float lr, Params&... params) : Adam(lr, 0.9, 0.999, 1e-8, params...) {}
+    Adam(const float lr, std::tuple<Params&...> params) : Adam(lr, 0.9, 0.999, 1e-8, params) {}
 
     Adam(const float lr, const float beta1, const float beta2, const float eps, Params&... params)
+        : Adam(lr, beta1, beta2, eps, std::make_tuple(std::ref(params)...)) {}
+
+    Adam(const float lr, const float beta1, const float beta2, const float eps, std::tuple<Params&...> params)
         : lr_{lr},
           beta1_{beta1},
           beta2_{beta2},
           eps_{eps},
-          params_{params...},
+          params_{params},
           t_{1},
           m_{std::apply([](auto&... params) { return std::make_tuple((zeros_like(params))...); }, params_)},
           v_{std::apply([](auto&... params) { return std::make_tuple((zeros_like(params))...); }, params_)} {}
