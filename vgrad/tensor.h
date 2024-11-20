@@ -127,7 +127,10 @@ template <typename A, typename B>
 concept TensorDTypeCompatible = IsTensor<A> && IsTensor<B> && std::is_same_v<typename A::DType, typename B::DType>;
 
 template <typename A, typename B>
-concept TensorShapeCompatible = IsTensor<A> && IsTensor<B> && std::is_same_v<typename A::Shape, typename B::Shape>;
+concept TensorShapeBroadcastCompatible =
+    IsTensor<A> && IsTensor<B> &&
+    std::is_same_v<typename A::Shape::template Last<std::min(A::Shape::rank, B::Shape::rank)>,
+                   typename B::Shape::template Last<std::min(A::Shape::rank, B::Shape::rank)>>;
 
 template <typename A, typename B>
 concept TensorMatmulCompatible = IsTensor<A> && IsTensor<B> && A::Shape::rank >= 2 && B::Shape::rank >= 2 &&

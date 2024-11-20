@@ -9,9 +9,35 @@
 namespace vgrad {
 
 template <typename A, typename B>
-concept TensorBinaryOpCompatible = TensorDTypeCompatible<A, B> && TensorShapeCompatible<A, B>;
+concept TensorBinaryOpCompatible = TensorDTypeCompatible<A, B> && TensorShapeBroadcastCompatible<A, B>;
 
 using OneDimension = Dimension<1>;  // for unsqueeze
+
+template <IsShape NewShape, IsTensor A>
+    requires(A::Shape::flat_size == NewShape::flat_size)
+auto reshape(const A& a) {
+    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
+
+    return Tensor<NewShape, typename A::DType, Node>{
+        a.get_data(),
+        Node{
+            a.get_node(),
+            [](const auto& dl_df) { return Tensor<typename A::Shape, typename A::DType>{dl_df.get_data()}; },
+        },
+    };
+}
+
+template <IsShape NewShape, IsTensor B>
+    requires TensorShapeBroadcastCompatible<Tensor<NewShape, typename B::DType>, B> &&
+             (NewShape::rank >= B::Shape::rank)
+auto broadcast(const B& b) {
+    if constexpr (NewShape::rank == B::Shape::rank) {
+        return b;
+    } else {
+        using Repeat = Dimension<NewShape::flat_size / B::Shape::flat_size>;
+        return reshape<NewShape>(repeat<0, Repeat>(unsqueeze<0>(b)));
+    }
+}
 
 template <IsTensor A>
 auto _unary_op(const A& a, auto forward, auto backward) {
@@ -36,8 +62,7 @@ auto _unary_op(const A& a, auto forward, auto backward) {
 }
 
 template <IsTensor A, IsTensor B>
-    requires TensorBinaryOpCompatible<A, B>
-auto _binary_op(const A& a, const B& b, auto forward, auto backward) {
+auto _binary_op_same_shape(const A& a, const B& b, auto forward, auto backward) {
     using Node = BinaryOpNode<typename A::Node, typename B::Node, typename A::Shape, typename A::DType>;
 
     Tensor<typename A::Shape, typename A::DType, Node> result{Node{
@@ -61,6 +86,16 @@ auto _binary_op(const A& a, const B& b, auto forward, auto backward) {
         result._init_entry(i, forward(a.flat_view()[i], b.flat_view()[i]));
     }
     return result;
+}
+
+template <IsTensor A, IsTensor B>
+    requires TensorBinaryOpCompatible<A, B>
+auto _binary_op(const A& a, const B& b, auto forward, auto backward) {
+    if constexpr (A::Shape::rank > B::Shape::rank) {
+        return _binary_op_same_shape(a, broadcast<typename A::Shape>(b), forward, backward);
+    } else {
+        return _binary_op_same_shape(broadcast<typename B::Shape>(a), b, forward, backward);
+    }
 }
 
 template <Index I1, Index I2, IsTensor A>
@@ -97,20 +132,6 @@ auto transpose(const A& a) {
         Node{
             a.get_node(),
             [](const auto& dl_df) { return _transpose_no_grad<I1, I2>(dl_df); },
-        },
-    };
-}
-
-template <IsShape NewShape, IsTensor A>
-    requires(A::Shape::flat_size == NewShape::flat_size)
-auto reshape(const A& a) {
-    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
-
-    return Tensor<NewShape, typename A::DType, Node>{
-        a.get_data(),
-        Node{
-            a.get_node(),
-            [](const auto& dl_df) { return Tensor<typename A::Shape, typename A::DType>{dl_df.get_data()}; },
         },
     };
 }
