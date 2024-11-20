@@ -447,7 +447,9 @@ auto one_hot(const A& a) {
 
 template <Index I = -1, IsTensor A>
 auto softmax(const A& a) {
-    auto exp_a = exp(a);
+    // normalize so along each row, max logit is 0 (to avoid overflow)
+    auto b = a - max<I, true>(a).detach();
+    auto exp_a = exp(b);
     auto sum_exp_a = sum<I, true>(exp_a);
     return exp_a / sum_exp_a;
 }
