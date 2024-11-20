@@ -9,7 +9,7 @@ template <IsTensor... Params>
     requires(IsFloatTensor<Params> && ...)
 class SGD {
    public:
-    SGD(float lr, Params&... params) : lr_{lr}, params_{params...} {}
+    SGD(const float lr, Params&... params) : lr_{lr}, params_{params...} {}
 
     template <IsScalarTensor Loss>
         requires IsFloatTensor<Loss>
@@ -33,9 +33,9 @@ template <IsTensor... Params>
 class Adam {
    public:
     // default parameters from https://pytorch.org/docs/stable/generated/torch.optim.Adam.html
-    Adam(float lr, Params&... params) : Adam(lr, 0.9, 0.999, 1e-8, params...) {}
+    Adam(const float lr, Params&... params) : Adam(lr, 0.9, 0.999, 1e-8, params...) {}
 
-    Adam(float lr, float beta1, float beta2, float eps, Params&... params)
+    Adam(const float lr, const float beta1, const float beta2, const float eps, Params&... params)
         : lr_{lr},
           beta1_{beta1},
           beta2_{beta2},
