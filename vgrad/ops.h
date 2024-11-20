@@ -101,11 +101,9 @@ auto transpose(const A& a) {
     };
 }
 
-// Remove a singleton dimension from a tensor.
-template <Index I, IsTensor A>
-    requires(A::Shape::template At<I>::value == 1)
-auto squeeze(const A& a) {
-    using NewShape = typename A::Shape::template Remove<I>;
+template <IsShape NewShape, IsTensor A>
+    requires(A::Shape::flat_size == NewShape::flat_size)
+auto reshape(const A& a) {
     using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
 
     return Tensor<NewShape, typename A::DType, Node>{
@@ -117,18 +115,18 @@ auto squeeze(const A& a) {
     };
 }
 
+// Remove a singleton dimension from a tensor.
+template <Index I, IsTensor A>
+    requires(A::Shape::template At<I>::value == 1)
+auto squeeze(const A& a) {
+    using NewShape = typename A::Shape::template Remove<I>;
+    return reshape<NewShape>(a);
+}
+
 template <Index I, IsTensor A>
 auto unsqueeze(const A& a) {
     using NewShape = typename A::Shape::template Insert<I, OneDimension>;
-    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
-
-    return Tensor<NewShape, typename A::DType, Node>{
-        a.get_data(),
-        Node{
-            a.get_node(),
-            [](const auto& dl_df) { return Tensor<typename A::Shape, typename A::DType>{dl_df.get_data()}; },
-        },
-    };
+    return reshape<NewShape>(a);
 }
 
 template <IsTensor A>

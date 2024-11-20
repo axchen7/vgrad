@@ -107,6 +107,19 @@ struct Shape<Outer, Inner> {
     template <Index I1, Index I2>
     using Transpose = decltype(transpose<I1, I2>());
 
+    template <Size Count>
+    static constexpr auto last() {
+        static_assert(Count <= rank);
+        if constexpr (Count == rank) {
+            return Shape<Outer, Inner>{};
+        } else {
+            return inner.template last<Count>();
+        }
+    }
+
+    template <Size Count>
+    using Last = decltype(last<Count>());
+
     static constexpr auto strides() {
         std::array<Size, rank> result{};
         result[0] = inner.flat_size;
@@ -160,6 +173,15 @@ struct ScalarShape {
 
     template <Index I, IsDimension Dim>
     using Insert = decltype(insert<I, Dim>());
+
+    template <Size Count>
+    static constexpr auto last() {
+        static_assert(Count == 0);
+        return ScalarShape{};
+    }
+
+    template <Size Count>
+    using Last = decltype(last<Count>());
 
     static constexpr auto typehint_type() { return std::string{"scalar"}; }
 };
