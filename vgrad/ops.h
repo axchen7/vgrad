@@ -412,10 +412,10 @@ auto logsumexp(const A& a) {
     return log(sum<I, KeepDim>(exp(a - max_a_expanded))) + max_a;
 }
 
-template <IsTensor A>  // TODO support Index, and KeepDim
+template <Index I = -1, bool KeepDim = false, IsTensor A>
 auto mean(const A& a) {
-    using LastDim = typename A::Shape::template At<-1>;
-    return sum(a) / LastDim::value;
+    using SumDim = typename A::Shape::template At<I>;
+    return sum<I, KeepDim>(a) / SumDim::value;
 }
 
 template <Index I = -1, bool KeepDim = false, IsTensor A>
