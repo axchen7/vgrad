@@ -399,7 +399,20 @@ auto prod(const A& a) {
         });
 }
 
-template <IsTensor A>
+// numerically stable, unlike log(sum(exp(x))).
+// implementation follows
+// https://github.com/pytorch/pytorch/blob/01d98c7cfb2031fd5ab4148444a2d34a171e700c/aten/src/ATen/native/ReduceOps.cpp#L333
+template <Index I = -1, bool KeepDim = false, IsTensor A>
+    requires IsValidIndex<typename A::Shape, I>
+auto logsumexp(const A& a) {
+    // must avoid exp() of a large input
+    // log(sum(exp(a))) = log(sum(exp(a-max[a])) * exp(max[a])) = log(sum(exp(a-max[a]))) + max[a]
+    auto max_a = max<I, KeepDim>(a).detach();
+    auto max_a_expanded = max<I, true>(a).detach();
+    return log(sum<I, KeepDim>(exp(a - max_a_expanded))) + max_a;
+}
+
+template <IsTensor A>  // TODO support Index, and KeepDim
 auto mean(const A& a) {
     using LastDim = typename A::Shape::template At<-1>;
     return sum(a) / LastDim::value;
@@ -447,20 +460,29 @@ auto one_hot(const A& a) {
 
 template <Index I = -1, IsTensor A>
 auto softmax(const A& a) {
-    // normalize so along each row, max logit is 0 (to avoid overflow)
-    auto b = a - max<I, true>(a).detach();
-    auto exp_a = exp(b);
-    auto sum_exp_a = sum<I, true>(exp_a);
-    return exp_a / sum_exp_a;
+    // must avoid exp() of a large input
+    // exp(a_i)/sum(exp(a)) = exp(a_i-max[a])/sum(exp(a-max[a]))
+    auto max_a = max<I, true>(a).detach();
+    auto exp_a = exp(a - max_a);
+    return exp_a / sum<I, true>(exp_a);
+}
+
+// numerically stable, unlike log(softmax(x)).
+// derived by manipulating formula in
+// https://pytorch.org/docs/stable/generated/torch.nn.LogSoftmax.html#torch.nn.LogSoftmax
+template <Index I = -1, IsTensor A>
+auto log_softmax(const A& a) {
+    // log(exp(a_i)/sum(exp(a))) = a_i - log(sum(exp(a)))
+    return a - logsumexp<I, true>(a);
 }
 
 template <IsTensor Logits, IsTensor Target>
 auto cross_entropy(const Logits& logits, const Target& target) {
     // from https://ml-cheatsheet.readthedocs.io/en/latest/loss_functions.html
     using Classes = typename Logits::Shape::template At<-1>;
-    auto probs = softmax(logits);
+    auto log_probs = log_softmax(logits);
     auto one_hot_target = one_hot<Classes, Target, typename Logits::DType>(target);
-    auto per_input_cross_entropy = -sum(one_hot_target * log(probs));
+    auto per_input_cross_entropy = -sum(one_hot_target * log_probs);
     return mean(per_input_cross_entropy);
 }
 
