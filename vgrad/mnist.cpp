@@ -43,10 +43,10 @@ class Model {
 };
 
 int main() {
-    using Inner = Dimension<128>;
+    using Inner = Dimension<16>;
 
-    using TrainBatch = Dimension<10'000>;
-    using TestBatch = Dimension<1'000>;
+    using TrainBatch = Dimension<1000>;
+    using TestBatch = Dimension<100>;
 
     using ImgSize = Dimension<28>;
     using FlatSize = Dimension<ImgSize::value * ImgSize::value>;
@@ -65,15 +65,19 @@ int main() {
     Model<FlatSize, Classes, float, Inner> model;
 
     const float lr = 0.1;
-    const int epochs = 100;
+    const int epochs = 200;
 
-    optim::Adam optimizer{lr, model.params()};
+    optim::SGD optimizer{lr, model.params()};
 
     for (int i = 0; i < epochs; i++) {
-        auto out = model.forward(train_flat);
-        auto loss = cross_entropy(out, train_labels);
-        optimizer.step(loss);
+        auto train_out = model.forward(train_flat);
+        auto train_loss = cross_entropy(train_out, train_labels);
+        optimizer.step(train_loss);
 
-        std::cout << "Epoch " << i << " loss: " << loss.value() << std::endl;
+        auto test_out = model.forward(test_flat);
+        auto test_loss = cross_entropy(test_out, test_labels);
+
+        std::cout << "Epoch: " << i << "\ttrain loss: " << train_loss.value() << "\ttest loss: " << test_loss.value()
+                  << std::endl;
     }
 }
