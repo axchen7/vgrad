@@ -102,15 +102,29 @@ class Tensor {
 };
 
 template <IsShape Shape, Number DType, typename Node>
+    requires(Shape::rank == 1)
+std::ostream& operator<<(std::ostream& os, const Tensor<Shape, DType, Node>& tensor) {
+    const auto& data = tensor.nested_view();
+    os << "[\n";
+    for (Size i = 0; i < Shape::flat_size; i++) {
+        os << data[i] << ' ';
+    }
+    os << "]\n";
+    return os;
+}
+
+template <IsShape Shape, Number DType, typename Node>
     requires(Shape::rank == 2)
 std::ostream& operator<<(std::ostream& os, const Tensor<Shape, DType, Node>& tensor) {
     const auto& data = tensor.nested_view();
+    os << "[\n";
     for (const auto& row : data) {
         for (const auto& elem : row) {
             os << elem << ' ';
         }
         os << '\n';
     }
+    os << "]\n";
     return os;
 }
 
