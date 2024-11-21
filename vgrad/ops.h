@@ -266,7 +266,7 @@ auto matmul(const A& a, const B& b) {
 
 template <IsTensor A>
 auto operator-(const A& a) {
-    return _unary_op(a, [](auto x) { return -x; }, [](auto x) { return -x; });
+    return _unary_op(a, [](auto x) { return -x; }, [](auto x) { return -1; });
 }
 
 template <IsFloatTensor A>
