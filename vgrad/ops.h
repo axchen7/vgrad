@@ -181,6 +181,7 @@ auto _reduce_last(const A& a, auto forward, auto backward) {
 }
 
 template <Index I, bool KeepDim, IsTensor A>
+    requires IsValidIndex<typename A::Shape, I>
 auto _reduce(const A& a, auto forward, auto backward) {
     // pivot index I to the last dimension
     // (must use normalized idx because we change the rank)
@@ -317,6 +318,15 @@ template <IsFloatTensor A, IsFloatTensor B>
 auto operator/(const A& a, const B& b) {
     return _binary_op(
         a, b, [](auto x, auto y) { return x / y; }, [](auto x, auto y) { return std::make_pair(1 / y, -x / (y * y)); });
+}
+
+template <IsTensor A, IsTensor B>
+    requires TensorBinaryOpCompatible<A, B>
+auto operator==(const A& a, const B& b) {
+    // backward is never used
+    auto result = _binary_op(
+        a, b, [](auto x, auto y) { return x == y ? 1 : 0; }, [](auto x, auto y) { return std::make_pair(0, 0); });
+    return result.detach();
 }
 
 template <IsTensor A>
