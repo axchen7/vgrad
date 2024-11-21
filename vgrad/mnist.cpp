@@ -10,7 +10,7 @@ using namespace vgrad;
 template <IsDimension In, IsDimension Out, Number DType>
 class Linear {
    public:
-    auto forward(const auto x) const { return matmul(x, w) + b; }
+    auto forward(const auto& x) const { return matmul(x, w) + b; }
 
     auto params() { return std::make_tuple(std::ref(w), std::ref(b)); }
 
@@ -24,7 +24,7 @@ class Linear {
 template <IsDimension In, IsDimension Out, Number DType, IsDimension Inner>
 class Model {
    public:
-    auto forward(auto x) const {
+    auto forward(const auto& x) const {
         auto o1 = layer1.forward(x);
         auto o2 = relu(o1);
         auto o3 = layer2.forward(o2);
@@ -41,6 +41,13 @@ class Model {
     Linear<In, Inner, DType> layer1;
     Linear<Inner, Out, DType> layer2;
 };
+
+template <IsTensor Out, IsTensor Labels>
+auto compute_accuracy(const Out& out, const Labels& labels) {
+    auto predictions = argmax<-1, Out, int32_t>(out);
+    float matches = sum(predictions == labels).value();
+    return matches / Labels::Shape::flat_size;
+}
 
 int main() {
     using Inner = Dimension<16>;
@@ -67,7 +74,7 @@ int main() {
     const float lr = 0.1;
     const int epochs = 200;
 
-    optim::SGD optimizer{lr, model.params()};
+    optim::Adam optimizer{lr, model.params()};
 
     for (int i = 0; i < epochs; i++) {
         auto train_out = model.forward(train_flat);
@@ -77,7 +84,9 @@ int main() {
         auto test_out = model.forward(test_flat);
         auto test_loss = cross_entropy(test_out, test_labels);
 
+        auto test_acc = compute_accuracy(test_out, test_labels);
+
         std::cout << "Epoch: " << i << "\ttrain loss: " << train_loss.value() << "\ttest loss: " << test_loss.value()
-                  << std::endl;
+                  << "\ttest acc: " << test_acc << std::endl;
     }
 }
