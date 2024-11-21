@@ -450,6 +450,37 @@ auto min(const A& a) {
     return -max<I, KeepDim>(-a);
 }
 
+template <Number DType, IsTensor A>
+auto _argmax_last(const A& a) {
+    using LastDim = typename A::Shape::template At<-1>;
+    using NewShape = typename A::Shape::template Remove<-1>;
+
+    Tensor<NewShape, DType> result;
+
+    for (Size i = 0; i < NewShape::flat_size; i++) {
+        std::span<const typename A::DType> slice{a.flat_view().begin() + i * LastDim::value, LastDim::value};
+        auto max_it = std::max_element(slice.begin(), slice.end());
+        result._init_entry(i, std::distance(slice.begin(), max_it));
+    }
+    return result;
+}
+
+template <Index I = -1, IsTensor A, Number DType = typename A::DType>
+    requires IsValidIndex<typename A::Shape, I>
+auto argmax(const A& a) {
+    // pivot index I to the last dimension
+    // (must use normalized idx because we change the rank)
+    constexpr auto idx = A::Shape::template normalize_index<I>();
+    auto b = squeeze<idx>(transpose<idx, -1>(unsqueeze<A::Shape::rank>(a)));
+    return _argmax_last<DType>(b);
+}
+
+template <Index I = -1, IsTensor A, Number DType = typename A::DType>
+    requires IsValidIndex<typename A::Shape, I>
+auto argmin(const A& a) {
+    return argmax<I, A, DType>(-a);
+}
+
 template <IsDimension Classes, IsTensor A, Number DType = typename A::DType>
     requires IsIntegralTensor<A>
 auto one_hot(const A& a) {
