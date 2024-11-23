@@ -42,3 +42,55 @@ export_vgtensor(test_images, "test_images.vgtensor")
 # Export the training and test labels
 export_vgtensor(train_labels, "train_labels.vgtensor")
 export_vgtensor(test_labels, "test_labels.vgtensor")
+
+# ===== model and training =====
+
+
+class Model(torch.nn.Module):
+    def __init__(self, in_size, out_size, inner_size):
+        super().__init__()
+        self.layer1 = torch.nn.Linear(in_size, inner_size)
+        self.layer2 = torch.nn.Linear(inner_size, out_size)
+
+    def forward(self, x):
+        x = self.layer1(x)
+        x = torch.relu(x)
+        x = self.layer2(x)
+        return x
+
+
+inner = 16
+
+img_size = 28
+flat_size = img_size * img_size
+
+classes = 10
+
+train_labels = train_labels.long()
+test_labels = test_labels.long()
+
+train_flat = train_images.view(-1, flat_size)
+test_flat = test_images.view(-1, flat_size)
+
+model = Model(flat_size, classes, inner)
+
+lr = 0.1
+epochs = 400
+
+optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+for epoch in range(epochs):
+    train_out = model(train_flat)
+    train_loss = torch.nn.functional.cross_entropy(train_out, train_labels)
+    train_loss.backward()
+    optimizer.step()
+    optimizer.zero_grad()
+
+    test_out = model(test_flat)
+    test_loss = torch.nn.functional.cross_entropy(test_out, test_labels)
+
+    test_acc = (test_out.argmax(dim=1) == test_labels).float().mean()
+
+    print(
+        f"Epoch: {epoch}\ttrain loss: {train_loss.item():.5f}\ttest loss: {test_loss.item():.5f}\ttest acc: {test_acc.item():.5f}"
+    )

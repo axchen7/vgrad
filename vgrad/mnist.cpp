@@ -7,12 +7,14 @@
 
 using namespace vgrad;
 
+auto make_params(auto&... params) { return std::make_tuple(std::ref(params)...); }
+
 template <IsDimension In, IsDimension Out, Number DType>
 class Linear {
    public:
     auto forward(const auto& x) const { return matmul(x, w) + b; }
 
-    auto params() { return std::make_tuple(std::ref(w), std::ref(b)); }
+    auto params() { return make_params(w, b); }
 
    private:
     using WShape = MakeShape<In, Out>;
@@ -34,7 +36,7 @@ class Model {
     auto params() {
         auto [w1, b1] = layer1.params();
         auto [w2, b2] = layer2.params();
-        return std::make_tuple(std::ref(w1), std::ref(b1), std::ref(w2), std::ref(b2));
+        return make_params(w1, b1, w2, b2);
     }
 
    private:
