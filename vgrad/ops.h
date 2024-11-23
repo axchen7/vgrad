@@ -1,6 +1,8 @@
 #ifndef VGRAD_OPS_H_
 #define VGRAD_OPS_H_
 
+#include <omp.h>
+
 #include <span>
 #include <stdexcept>
 
@@ -116,12 +118,14 @@ auto _transpose_no_grad(const A& a) {
     constexpr auto idx1 = A::Shape::template normalize_index<I1>();
     constexpr auto idx2 = A::Shape::template normalize_index<I2>();
 
+#pragma omp parallel for
     for (Size i = 0; i < A::Shape::flat_size; i++) {
         auto indices = A::Shape::to_indices(i);
         std::swap(indices[idx1], indices[idx2]);
         auto new_idx = NewShape::to_flat_index(indices);
         result._init_entry(new_idx, a.flat_view()[i]);
     }
+
     return result;
 }
 

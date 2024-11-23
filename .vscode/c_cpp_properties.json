@@ -2,7 +2,10 @@
   "configurations": [
     {
       "name": "Mac",
-      "includePath": ["${workspaceFolder}/vgrad/**"],
+      "includePath": [
+        "${workspaceFolder}/vgrad/**",
+        "/opt/homebrew/opt/libomp/include/**"
+      ],
       "defines": [],
       "macFrameworkPath": [
         "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks"
