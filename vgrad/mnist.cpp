@@ -52,8 +52,8 @@ auto compute_accuracy(const Out& out, const Labels& labels) {
 int main() {
     using Inner = Dimension<16>;
 
-    using TrainBatch = Dimension<1000>;
-    using TestBatch = Dimension<100>;
+    using TrainBatch = Dimension<10000>;
+    using TestBatch = Dimension<500>;
 
     using ImgSize = Dimension<28>;
     using FlatSize = Dimension<ImgSize::value * ImgSize::value>;
