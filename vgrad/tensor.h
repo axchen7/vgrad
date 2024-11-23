@@ -41,14 +41,12 @@ class Tensor {
     using Node = _Node;
     using FlatData = std::array<DType, Shape::flat_size>;
     using NestedData = NestedArray<Shape, DType>;
-    using RawData = std::vector<DType>;  // TODO use static-length std::array (no longer need raw data)
     using Detached = Tensor<Shape, DType>;
 
-    Tensor(Node&& node = Node{})
-        : data_{std::make_shared<RawData>(Shape::flat_size, DType{})}, node_{std::make_shared<Node>(node)} {}
+    Tensor(Node&& node = Node{}) : data_{std::make_shared<FlatData>()}, node_{std::make_shared<Node>(node)} {}
 
     Tensor(const NestedData& data, Node&& node = Node{})
-        : data_{std::make_shared<RawData>(Shape::flat_size)}, node_{std::make_shared<Node>(node)} {
+        : data_{std::make_shared<FlatData>()}, node_{std::make_shared<Node>(node)} {
         if constexpr (Shape::rank == 0) {
             (*data_)[0] = data;
         } else {
@@ -57,12 +55,12 @@ class Tensor {
         }
     }
 
-    Tensor(const std::shared_ptr<RawData>& data, Node&& node = Node{})
+    Tensor(const std::shared_ptr<FlatData>& data, Node&& node = Node{})
         : data_{data}, node_{std::make_shared<Node>(node)} {
         assert(data_->size() == Shape::flat_size);
     }
 
-    const FlatData& flat_view() const { return *reinterpret_cast<const FlatData*>(data_->data()); }
+    const FlatData& flat_view() const { return *data_; }
 
     const NestedData& nested_view() const
         requires(Shape::rank > 0)
@@ -97,7 +95,7 @@ class Tensor {
     }
 
    private:
-    std::shared_ptr<RawData> data_;
+    std::shared_ptr<FlatData> data_;
     std::shared_ptr<Node> node_;
 };
 
