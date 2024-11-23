@@ -43,6 +43,7 @@ class Tensor {
     using NestedData = NestedArray<Shape, DType>;
     using Detached = Tensor<Shape, DType>;
 
+    // data is initialized to zeros
     Tensor(Node&& node = Node{}) : data_{std::make_shared<FlatData>()}, node_{std::make_shared<Node>(node)} {}
 
     Tensor(const NestedData& data, Node&& node = Node{})
@@ -88,7 +89,9 @@ class Tensor {
 
     void _init_entry(Size index, DType value) { (*data_)[index] = value; }
 
-    auto& _flat_data() { return *data_; }
+    // Escape hatch for mutating the data on init. If only viewing, use
+    // flat_view() instead.
+    FlatData& _flat_data() { return *data_; }
 
     static constexpr auto typehint_type() {
         auto shape = Shape::typehint_type();
