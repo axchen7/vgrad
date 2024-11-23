@@ -47,55 +47,59 @@ auto _unary_op(const A& a, auto forward, auto backward) {
     Tensor<typename A::Shape, typename A::DType, Node> result{Node{
         a.get_node(),
         [a, backward](const auto& dl_df) {
+            // dl/da = dl/df * df/da
             Tensor<typename A::Shape, typename A::DType> dl_da;
-            for (Size i = 0; i < A::Shape::flat_size; i++) {
-                auto df_da = backward(a.flat_view()[i]);
-                dl_da._init_entry(i, dl_df.flat_view()[i] * df_da);
-            }
+            std::transform(a.flat_view().begin(), a.flat_view().end(), dl_da._flat_data().begin(), backward);
+            std::transform(dl_da.flat_view().begin(), dl_da.flat_view().end(), dl_df.flat_view().begin(),
+                           dl_da._flat_data().begin(), std::multiplies{});
             return dl_da;
         },
     }};
 
-    for (Size i = 0; i < A::Shape::flat_size; i++) {
-        result._init_entry(i, forward(a.flat_view()[i]));
-    }
+    std::transform(a.flat_view().begin(), a.flat_view().end(), result._flat_data().begin(), forward);
+
     return result;
 }
 
 template <IsTensor A, IsTensor B>
-auto _binary_op_same_shape(const A& a, const B& b, auto forward, auto backward) {
+auto _binary_op_same_shape(const A& a, const B& b, auto forward, auto backward_a, auto backward_b) {
     using Node = BinaryOpNode<typename A::Node, typename B::Node, typename A::Shape, typename A::DType>;
 
     Tensor<typename A::Shape, typename A::DType, Node> result{Node{
         a.get_node(),
         b.get_node(),
-        [a, b, backward](const auto& dl_df) {
+        [a, b, backward_a, backward_b](const auto& dl_df) {
+            // dl/da = dl/df * df/da
             Tensor<typename A::Shape, typename A::DType> dl_da;
-            Tensor<typename B::Shape, typename B::DType> dl_db;
-            for (Size i = 0; i < A::Shape::flat_size; i++) {
-                auto [df_da, df_db] = backward(a.flat_view()[i], b.flat_view()[i]);
+            std::transform(a.flat_view().begin(), a.flat_view().end(), b.flat_view().begin(),
+                           dl_da._flat_data().begin(), backward_a);
+            std::transform(dl_da.flat_view().begin(), dl_da.flat_view().end(), dl_df.flat_view().begin(),
+                           dl_da._flat_data().begin(), std::multiplies{});
 
-                dl_da._init_entry(i, dl_df.flat_view()[i] * df_da);
-                dl_db._init_entry(i, dl_df.flat_view()[i] * df_db);
-            }
+            // dl/db = dl/df * df/db
+            Tensor<typename B::Shape, typename B::DType> dl_db;
+            std::transform(a.flat_view().begin(), a.flat_view().end(), b.flat_view().begin(),
+                           dl_db._flat_data().begin(), backward_b);
+            std::transform(dl_db.flat_view().begin(), dl_db.flat_view().end(), dl_df.flat_view().begin(),
+                           dl_db._flat_data().begin(), std::multiplies{});
 
             return std::make_pair(dl_da, dl_db);
         },
     }};
 
-    for (Size i = 0; i < A::Shape::flat_size; i++) {
-        result._init_entry(i, forward(a.flat_view()[i], b.flat_view()[i]));
-    }
+    std::transform(a.flat_view().begin(), a.flat_view().end(), b.flat_view().begin(), result._flat_data().begin(),
+                   forward);
+
     return result;
 }
 
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
-auto _binary_op(const A& a, const B& b, auto forward, auto backward) {
+auto _binary_op(const A& a, const B& b, auto forward, auto backward_a, auto backward_b) {
     if constexpr (A::Shape::rank > B::Shape::rank) {
-        return _binary_op_same_shape(a, broadcast<typename A::Shape>(b), forward, backward);
+        return _binary_op_same_shape(a, broadcast<typename A::Shape>(b), forward, backward_a, backward_b);
     } else {
-        return _binary_op_same_shape(broadcast<typename B::Shape>(a), b, forward, backward);
+        return _binary_op_same_shape(broadcast<typename B::Shape>(a), b, forward, backward_a, backward_b);
     }
 }
 
@@ -298,26 +302,31 @@ auto relu(const A& a) {
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator+(const A& a, const B& b) {
-    return _binary_op(a, b, [](auto x, auto y) { return x + y; }, [](auto x, auto y) { return std::make_pair(1, 1); });
+    return _binary_op(
+        a, b, [](auto x, auto y) { return x + y; }, [](auto x, auto y) { return 1; }, [](auto x, auto y) { return 1; });
 }
 
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator-(const A& a, const B& b) {
-    return _binary_op(a, b, [](auto x, auto y) { return x - y; }, [](auto x, auto y) { return std::make_pair(1, -1); });
+    return _binary_op(
+        a, b, [](auto x, auto y) { return x - y; }, [](auto x, auto y) { return 1; },
+        [](auto x, auto y) { return -1; });
 }
 
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator*(const A& a, const B& b) {
-    return _binary_op(a, b, [](auto x, auto y) { return x * y; }, [](auto x, auto y) { return std::make_pair(y, x); });
+    return _binary_op(
+        a, b, [](auto x, auto y) { return x * y; }, [](auto x, auto y) { return y; }, [](auto x, auto y) { return x; });
 }
 
 template <IsFloatTensor A, IsFloatTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator/(const A& a, const B& b) {
     return _binary_op(
-        a, b, [](auto x, auto y) { return x / y; }, [](auto x, auto y) { return std::make_pair(1 / y, -x / (y * y)); });
+        a, b, [](auto x, auto y) { return x / y; }, [](auto x, auto y) { return 1 / y; },
+        [](auto x, auto y) { return -x / (y * y); });
 }
 
 template <IsTensor A, IsTensor B>
@@ -325,7 +334,8 @@ template <IsTensor A, IsTensor B>
 auto operator==(const A& a, const B& b) {
     // backward is never used
     auto result = _binary_op(
-        a, b, [](auto x, auto y) { return x == y ? 1 : 0; }, [](auto x, auto y) { return std::make_pair(0, 0); });
+        a, b, [](auto x, auto y) { return x == y ? 1 : 0; }, [](auto x, auto y) { return 0; },
+        [](auto x, auto y) { return 0; });
     return result.detach();
 }
 
@@ -486,7 +496,7 @@ template <IsDimension Classes, IsTensor A, Number DType = typename A::DType>
 auto one_hot(const A& a) {
     using NewShape = typename A::Shape::template Insert<A::Shape::rank, Classes>;
 
-    auto result = zeros<DType, NewShape>();
+    Tensor<NewShape, DType> result;
 
     for (Size i = 0; i < A::Shape::flat_size; i++) {
         auto cur_class = a.flat_view()[i];
