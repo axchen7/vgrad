@@ -22,16 +22,7 @@ auto import_vgtensor(std::string filename) {
     file.seekg(0, std::ios::beg);
 
     Tensor<Shape, DType> result;
-
-    for (Size i = 0; i < Shape::flat_size; ++i) {
-        DType value;
-        file.read(reinterpret_cast<char*>(&value), sizeof(DType));
-        if (!file) {
-            throw std::runtime_error("Failed to read data from file");
-        }
-        result._init_entry(i, value);
-    }
-
+    file.read(reinterpret_cast<char*>(result._flat_data().data()), sizeof(DType) * Shape::flat_size);
     return result;
 }
 
