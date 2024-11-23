@@ -2,8 +2,8 @@ import torch
 from torchvision import datasets, transforms
 from export_vgtensor import export_vgtensor
 
-N_TRAIN = 1000
-N_TEST = 100
+N_TRAIN = 10000
+N_TEST = 500
 
 # Define a transform to normalize the data
 transform = transforms.Compose([transforms.ToTensor()])
