@@ -31,6 +31,7 @@ struct Shape {};
 
 template <IsDimension Outer, IsShape Inner>
 struct Shape<Outer, Inner> {
+   public:
     static constexpr bool is_shape = true;
 
     static constexpr Outer outer;
@@ -38,6 +39,19 @@ struct Shape<Outer, Inner> {
 
     static constexpr Size rank = 1 + Inner::rank;
     static constexpr Size flat_size = Outer::value * Inner::flat_size;
+
+    static constexpr auto compute_strides() {
+        std::array<Size, rank> result{};
+        result[0] = inner.flat_size;
+        if constexpr (rank > 1) {
+            for (Size i = 0; i < inner.rank; i++) {
+                result[i + 1] = inner.strides[i];
+            }
+        }
+        return result;
+    }
+
+    static constexpr auto strides = compute_strides();
 
     template <Index I>
         requires IsValidIndex<Shape<Outer, Inner>, I>
@@ -120,33 +134,19 @@ struct Shape<Outer, Inner> {
     template <Size Count>
     using Last = decltype(last<Count>());
 
-    static constexpr auto strides() {
-        std::array<Size, rank> result{};
-        result[0] = inner.flat_size;
-        if constexpr (rank > 1) {
-            auto inner_strides = inner.strides();
-            for (Size i = 0; i < inner.rank; i++) {
-                result[i + 1] = inner_strides[i];
-            }
-        }
-        return result;
-    }
-
     static constexpr auto to_indices(Size flat_index) {
-        auto s = strides();
         std::array<Size, rank> result{};
         for (Size i = 0; i < rank; i++) {
-            result[i] = flat_index / s[i];
-            flat_index %= s[i];
+            result[i] = flat_index / strides[i];
+            flat_index %= strides[i];
         }
         return result;
     }
 
     static constexpr auto to_flat_index(std::array<Size, rank> indices) {
-        auto s = strides();
         Size result = 0;
         for (Size i = 0; i < rank; i++) {
-            result += indices[i] * s[i];
+            result += indices[i] * strides[i];
         }
         return result;
     }
