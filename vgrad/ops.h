@@ -175,21 +175,25 @@ auto _reduce_last(const A& a, auto forward, auto backward) {
         [a, backward](const auto& dl_df) {
             Tensor<typename A::Shape, typename A::DType> dl_da;
 
+#pragma omp parallel for
             for (Size i = 0; i < NewShape::flat_size; i++) {
                 std::span<const typename A::DType> slice{a.flat_view().begin() + i * LastDim::value, LastDim::value};
                 auto df_da = backward(slice);  // holds a row
                 for (Size j = 0; j < LastDim::value; j++) {
-                    dl_da._init_entry(i * LastDim::value + j, dl_df.flat_view()[i] * df_da[j]);
+                    dl_da._flat_data()[i * LastDim::value + j] = dl_df.flat_view()[i] * df_da[j];
                 }
             }
+
             return dl_da;
         },
     }};
 
+#pragma omp parallel for
     for (Size i = 0; i < NewShape::flat_size; i++) {
         std::span<const typename A::DType> slice{a.flat_view().begin() + i * LastDim::value, LastDim::value};
-        result._init_entry(i, forward(slice));
+        result._flat_data()[i] = forward(slice);
     }
+
     return result;
 }
 
@@ -223,9 +227,10 @@ auto repeat(const A& a) {
 
     Tensor<NewShape, typename A::DType, Node> result{Node{
         a.get_node(),
-        [a](const auto& dl_df) {
+        [a, idx](const auto& dl_df) {
             Tensor<typename A::Shape, typename A::DType> dl_da;
 
+#pragma omp parallel for
             for (Size i = 0; i < A::Shape::flat_size; i++) {
                 typename A::DType dl_da_val = 0;
 
@@ -235,17 +240,19 @@ auto repeat(const A& a) {
                     auto flat_idx = NewShape::to_flat_index(indices);
                     dl_da_val += dl_df.flat_view()[flat_idx];
                 }
-                dl_da._init_entry(i, dl_da_val);
+                dl_da._flat_data()[i] = dl_da_val;
             }
+
             return dl_da;
         },
     }};
 
+#pragma omp parallel for
     for (Size i = 0; i < NewShape::flat_size; i++) {
         auto indices = NewShape::to_indices(i);
         indices[idx] = 0;
         auto flat_idx = A::Shape::to_flat_index(indices);
-        result._init_entry(i, a.flat_view()[flat_idx]);
+        result._flat_data()[i] = a.flat_view()[flat_idx];
     }
 
     return result;
@@ -476,11 +483,13 @@ auto _argmax_last(const A& a) {
 
     Tensor<NewShape, DType> result;
 
+#pragma omp parallel for
     for (Size i = 0; i < NewShape::flat_size; i++) {
         std::span<const typename A::DType> slice{a.flat_view().begin() + i * LastDim::value, LastDim::value};
         auto max_it = std::max_element(slice.begin(), slice.end());
-        result._init_entry(i, std::distance(slice.begin(), max_it));
+        result._flat_data()[i] = std::distance(slice.begin(), max_it);
     }
+
     return result;
 }
 
@@ -507,12 +516,13 @@ auto one_hot(const A& a) {
 
     Tensor<NewShape, DType> result;
 
+#pragma omp parallel for
     for (Size i = 0; i < A::Shape::flat_size; i++) {
         auto cur_class = a.flat_view()[i];
         if (cur_class >= Classes::value) {
             throw std::invalid_argument("class index out of range");
         }
-        result._init_entry(i * Classes::value + cur_class, 1);
+        result._flat_data()[i * Classes::value + cur_class] = 1;
     }
 
     return result;
