@@ -14,11 +14,9 @@ constexpr auto eye() {
     Dim dim;
     auto shape = make_shape(dim, dim);
     Tensor<decltype(shape), DType> result;
+    result._init_full(0);
     for (Size i = 0; i < Dim::value; i++) {
-        for (Size j = 0; j < Dim::value; j++) {
-            DType val = i == j ? 1 : 0;
-            result._init_entry(i * Dim::value + j, val);
-        }
+        result._init_entry(i * Dim::value + i, 1);
     }
     return result;
 }
@@ -26,9 +24,7 @@ constexpr auto eye() {
 template <typename DType, IsShape Shape>
 constexpr auto full(DType value) {
     Tensor<Shape, DType> result;
-    for (Size i = 0; i < Shape::flat_size; i++) {
-        result._init_entry(i, value);
-    }
+    result._init_full(value);
     return result;
 }
 
