@@ -49,16 +49,22 @@ auto _unary_op(const A& a, auto forward, auto backward) {
     Tensor<typename A::Shape, typename A::DType, Node> result{Node{
         a.get_node(),
         [a, backward](const auto& dl_df) {
-            // dl/da = dl/df * df/da
             Tensor<typename A::Shape, typename A::DType> dl_da;
-            std::transform(a.flat_view().begin(), a.flat_view().end(), dl_da._flat_data().begin(), backward);
-            std::transform(dl_da.flat_view().begin(), dl_da.flat_view().end(), dl_df.flat_view().begin(),
-                           dl_da._flat_data().begin(), std::multiplies{});
+
+#pragma omp parallel for
+            for (Size i = 0; i < A::Shape::flat_size; i++) {
+                auto df_da = backward(a.flat_view()[i]);
+                dl_da._flat_data()[i] = dl_df.flat_view()[i] * df_da;
+            }
+
             return dl_da;
         },
     }};
 
-    std::transform(a.flat_view().begin(), a.flat_view().end(), result._flat_data().begin(), forward);
+#pragma omp parallel for
+    for (Size i = 0; i < A::Shape::flat_size; i++) {
+        result._flat_data()[i] = forward(a.flat_view()[i]);
+    }
 
     return result;
 }
@@ -71,26 +77,25 @@ auto _binary_op_same_shape(const A& a, const B& b, auto forward, auto backward_a
         a.get_node(),
         b.get_node(),
         [a, b, backward_a, backward_b](const auto& dl_df) {
-            // dl/da = dl/df * df/da
             Tensor<typename A::Shape, typename A::DType> dl_da;
-            std::transform(a.flat_view().begin(), a.flat_view().end(), b.flat_view().begin(),
-                           dl_da._flat_data().begin(), backward_a);
-            std::transform(dl_da.flat_view().begin(), dl_da.flat_view().end(), dl_df.flat_view().begin(),
-                           dl_da._flat_data().begin(), std::multiplies{});
-
-            // dl/db = dl/df * df/db
             Tensor<typename B::Shape, typename B::DType> dl_db;
-            std::transform(a.flat_view().begin(), a.flat_view().end(), b.flat_view().begin(),
-                           dl_db._flat_data().begin(), backward_b);
-            std::transform(dl_db.flat_view().begin(), dl_db.flat_view().end(), dl_df.flat_view().begin(),
-                           dl_db._flat_data().begin(), std::multiplies{});
+
+#pragma omp parallel
+            for (Size i = 0; i < A::Shape::flat_size; i++) {
+                auto df_da = backward_a(a.flat_view()[i], b.flat_view()[i]);
+                auto df_db = backward_b(a.flat_view()[i], b.flat_view()[i]);
+                dl_da._flat_data()[i] = dl_df.flat_view()[i] * df_da;
+                dl_db._flat_data()[i] = dl_df.flat_view()[i] * df_db;
+            }
 
             return std::make_pair(dl_da, dl_db);
         },
     }};
 
-    std::transform(a.flat_view().begin(), a.flat_view().end(), b.flat_view().begin(), result._flat_data().begin(),
-                   forward);
+#pragma omp parallel
+    for (Size i = 0; i < A::Shape::flat_size; i++) {
+        result._flat_data()[i] = forward(a.flat_view()[i], b.flat_view()[i]);
+    }
 
     return result;
 }
