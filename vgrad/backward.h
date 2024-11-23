@@ -17,18 +17,20 @@ struct GradientHolder {
 };
 
 template <IsNode Node, IsTensor Param>
-auto accumulate_grad(GradientHolder<Param>& grad_holder, const std::shared_ptr<Node> node) {
+auto accumulate_grad(const std::shared_ptr<Node> node,
+                     const Tensor<typename Node::OutShape, typename Node::DType>& d_loss_d_out,
+                     GradientHolder<Param>& grad_holder) {
     if constexpr (std::is_same_v<typename Param::Node, Node>) {
         if (grad_holder.tensor.get_node() == node)
             grad_holder.gradient = (grad_holder.gradient + d_loss_d_out).detach();
     }
 }
 
-template <IsNode Node, IsTensor Param>
+template <IsNode Node, IsTensor... Params>
 void backward_rec(const std::shared_ptr<Node> node,
                   const Tensor<typename Node::OutShape, typename Node::DType>& d_loss_d_out,
-                  GradientHolder<Param>&... grad_holders) {
-    accumulate_grad(grad_holders, node)...;
+                  GradientHolder<Params>&... grad_holders) {
+    (accumulate_grad(node, d_loss_d_out, grad_holders), ...);
 
     if constexpr (IsUnaryNode<Node>) {
         auto d_loss_d_in = node->grad_fn(d_loss_d_out);
@@ -40,19 +42,13 @@ void backward_rec(const std::shared_ptr<Node> node,
     }
 }
 
-template <IsScalarTensor RootTensor, IsTensor Param>
-    requires IsFloatTensor<RootTensor> && IsFloatTensor<Param>
-auto backward(const RootTensor& out, const Param& param) {
-    GradientHolder<Param> grad_holder{param};
-    backward_rec(out.get_node(), grad_holder, ones_like(out));
-    return grad_holder.gradient;
-}
-
 template <IsScalarTensor RootTensor, IsTensor... Params>
     requires IsFloatTensor<RootTensor> && (IsFloatTensor<Params> && ...)
 auto backward(const RootTensor& out, const Params&... params) {
-    GradientHolder<Params>... grad_holder{param}...;
-    return std::make_tuple(backward_rec(out, params)...);
+    auto grad_holders = std::make_tuple(GradientHolder{params}...);
+    std::apply([&](auto&... grad_holders) { backward_rec(out.get_node(), ones_like(out), grad_holders...); },
+               grad_holders);
+    return std::apply([](auto&... grad_holders) { return std::make_tuple(grad_holders.gradient...); }, grad_holders);
 }
 
 }  // namespace vgrad
