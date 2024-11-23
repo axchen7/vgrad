@@ -76,7 +76,7 @@ int main() {
 
     optim::Adam optimizer{lr, model.params()};
 
-    for (int i = 0; i < epochs; i++) {
+    for (int epoch = 0; epoch < epochs; epoch++) {
         auto train_out = model.forward(train_flat);
         auto train_loss = cross_entropy(train_out, train_labels);
         optimizer.step(train_loss);
@@ -86,7 +86,7 @@ int main() {
 
         auto test_acc = compute_accuracy(test_out, test_labels);
 
-        std::cout << "Epoch: " << i << "\ttrain loss: " << train_loss.value() << "\ttest loss: " << test_loss.value()
-                  << "\ttest acc: " << test_acc << std::endl;
+        std::cout << "Epoch: " << epoch << "\ttrain loss: " << train_loss.value()
+                  << "\ttest loss: " << test_loss.value() << "\ttest acc: " << test_acc << std::endl;
     }
 }
