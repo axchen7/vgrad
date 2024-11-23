@@ -1,27 +1,12 @@
 #include <tuple>
 
 #include "create_tensor.h"
+#include "module.h"
 #include "ops.h"
 #include "optimizers.h"
 #include "vgtensor.h"
 
 using namespace vgrad;
-
-auto make_params(auto&... params) { return std::make_tuple(std::ref(params)...); }
-
-template <IsDimension In, IsDimension Out, Number DType>
-class Linear {
-   public:
-    auto forward(const auto& x) const { return matmul(x, w) + b; }
-
-    auto params() { return make_params(w, b); }
-
-   private:
-    using WShape = MakeShape<In, Out>;
-    using BShape = MakeShape<Out>;
-    Tensor<WShape, DType> w = randn<DType, WShape>();
-    Tensor<BShape, DType> b = randn<DType, BShape>();
-};
 
 template <IsDimension In, IsDimension Out, Number DType, IsDimension Inner>
 class Model {
@@ -33,11 +18,7 @@ class Model {
         return o3;
     }
 
-    auto params() {
-        auto [w1, b1] = layer1.params();
-        auto [w2, b2] = layer2.params();
-        return make_params(w1, b1, w2, b2);
-    }
+    auto params() { return make_params(layer1, layer2); }
 
    private:
     Linear<In, Inner, DType> layer1;
