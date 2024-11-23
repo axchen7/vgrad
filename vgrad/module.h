@@ -13,7 +13,11 @@ concept IsModule = requires(T t) {
 auto unpack_params(IsModule auto& module) { return module.params(); }
 auto unpack_params(IsTensor auto& tensor) { return std::make_tuple(std::ref(tensor)); }
 
-auto make_params(auto&... params) { return std::tuple_cat(unpack_params(params)...); }
+template <typename... Params>
+    requires((IsModule<Params> || IsTensor<Params>) && ...)
+auto make_params(Params&... params) {
+    return std::tuple_cat(unpack_params(params)...);
+}
 
 template <IsDimension In, IsDimension Out, Number DType>
 class Linear {
