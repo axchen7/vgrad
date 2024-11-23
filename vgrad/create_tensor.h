@@ -14,7 +14,6 @@ constexpr auto eye() {
     Dim dim;
     auto shape = make_shape(dim, dim);
     Tensor<decltype(shape), DType> result;
-    result._flat_data().fill(0);
     for (Size i = 0; i < Dim::value; i++) {
         result._flat_data()[i * Dim::value + i] = 1;
     }
