@@ -55,12 +55,13 @@ class ProfileInstance {
     AutoScopeProfiler profile_scope(const std::string label) {
         current->children.emplace_back(label, current);
         current = &current->children.back();
-        return AutoScopeProfiler([this] {
-            current->stop();
-            auto parent = current->parent;
-            if (parent == nullptr) {
-                throw std::runtime_error("ProfileNode " + current->label + " has no parent");
+        ProfileNode* start_of_scope = current;
+        return AutoScopeProfiler([this, start_of_scope]() {
+            if (current != start_of_scope) {
+                throw std::runtime_error("Profile scope mismatch");
             }
+            current->stop();
+            auto parent = current->parent;  // never nullptr because start_of_scope->parent is never nullptr
             current = parent;
         });
     }
