@@ -7,6 +7,9 @@ LIBS = -L/opt/homebrew/opt/libomp/lib
 mnist:
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) mnist.cpp -o mnist.out $(LDFLAGS)
 
+profile:
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) profile.cpp -o profile.out $(LDFLAGS)
+
 .PHONY: clean
 
 clean:
