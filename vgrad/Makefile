@@ -1,5 +1,5 @@
 CXX = clang++
-CXXFLAGS = -std=c++23 -O3 -Xclang -fopenmp
+CXXFLAGS = -std=c++23 -O2 -Xclang -fopenmp
 LDFLAGS = -lomp
 INCLUDES = -I/opt/homebrew/opt/libomp/include
 LIBS = -L/opt/homebrew/opt/libomp/lib
