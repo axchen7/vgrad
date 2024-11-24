@@ -88,10 +88,12 @@ class ProfileInstance {
     }
 
     void print_profile() const {
+        std::cout << "\nProfile results:\n----------------\n";
         if (current != &root) {
             throw std::runtime_error("Still in a profile scope: " + current->label);
         }
         print_profile_rec(root, 0);
+        std::cout << "----------------\n\n";
     }
 };
 
