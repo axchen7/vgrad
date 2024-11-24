@@ -10,6 +10,8 @@ namespace vgrad {
 // import a tensor saved via numpy .tobytes()
 template <typename DType, IsShape Shape>
 auto import_vgtensor(std::string filename) {
+    PROFILE_SCOPE("import_vgtensor");
+
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
     if (!file) {
         throw std::runtime_error("Failed to open file");

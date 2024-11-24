@@ -45,6 +45,7 @@ void backward_rec(const std::shared_ptr<Node> node,
 template <IsScalarTensor RootTensor, IsTensor... Params>
     requires IsFloatTensor<RootTensor> && (IsFloatTensor<Params> && ...)
 auto backward(const RootTensor& out, const Params&... params) {
+    PROFILE_SCOPE("backward");
     auto grad_holders = std::make_tuple(GradientHolder{params}...);
     std::apply([&](auto&... grad_holders) { backward_rec(out.get_node(), ones_like(out), grad_holders...); },
                grad_holders);

@@ -11,6 +11,7 @@ std::default_random_engine eng(std::random_device{}());
 
 template <typename DType, IsDimension Dim>
 constexpr auto eye() {
+    PROFILE_SCOPE("eye");
     Dim dim;
     auto shape = make_shape(dim, dim);
     Tensor<decltype(shape), DType> result;
@@ -22,6 +23,7 @@ constexpr auto eye() {
 
 template <typename DType, IsShape Shape>
 constexpr auto full(DType value) {
+    PROFILE_SCOPE("full");
     Tensor<Shape, DType> result;
     result._flat_data().fill(value);
     return result;
@@ -29,31 +31,37 @@ constexpr auto full(DType value) {
 
 template <typename DType, IsShape Shape>
 constexpr auto zeros() {
+    PROFILE_SCOPE("zeros");
     return full<DType, Shape>(0);
 }
 
 template <typename DType, IsShape Shape>
 constexpr auto ones() {
+    PROFILE_SCOPE("ones");
     return full<DType, Shape>(1);
 }
 
 template <IsTensor T>
 constexpr auto full_like(const T& tensor, typename T::DType value) {
+    PROFILE_SCOPE("full_like");
     return full<typename T::DType, typename T::Shape>(value);
 }
 
 template <IsTensor T>
 constexpr auto zeros_like(const T& tensor) {
+    PROFILE_SCOPE("zeros_like");
     return zeros<typename T::DType, typename T::Shape>();
 }
 
 template <IsTensor T>
 constexpr auto ones_like(const T& tensor) {
+    PROFILE_SCOPE("ones_like");
     return ones<typename T::DType, typename T::Shape>();
 }
 
 template <typename DType, IsShape Shape>
 auto randn() {
+    PROFILE_SCOPE("randn");
     std::normal_distribution<DType> dist(0, 1);
 
     Tensor<Shape, DType> result;

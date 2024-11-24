@@ -7,7 +7,6 @@
 #include <stdexcept>
 
 #include "graph.h"
-#include "profile.h"
 #include "tensor.h"
 
 namespace vgrad {
@@ -28,7 +27,7 @@ auto reshape(const A& a) {
         Node{
             a.get_node(),
             [](const auto& dl_df) {
-                PROFILE_SCOPE("reshape_grad");
+                PROFILE_SCOPE("reshape::grad");
                 return Tensor<typename A::Shape, typename A::DType>{dl_df.get_data()};
             },
         },
@@ -56,7 +55,7 @@ auto _unary_op(const A& a, auto forward, auto backward) {
     Tensor<typename A::Shape, typename A::DType, Node> result{Node{
         a.get_node(),
         [a, backward](const auto& dl_df) {
-            PROFILE_SCOPE("_unary_op_grad");
+            PROFILE_SCOPE("_unary_op::grad");
             Tensor<typename A::Shape, typename A::DType> dl_da;
 
 #pragma omp parallel for
@@ -86,7 +85,7 @@ auto _binary_op_same_shape(const A& a, const B& b, auto forward, auto backward_a
         a.get_node(),
         b.get_node(),
         [a, b, backward_a, backward_b](const auto& dl_df) {
-            PROFILE_SCOPE("_binary_op_same_shape_grad");
+            PROFILE_SCOPE("_binary_op_same_shape::grad");
             Tensor<typename A::Shape, typename A::DType> dl_da;
             Tensor<typename B::Shape, typename B::DType> dl_db;
 
@@ -159,7 +158,7 @@ auto transpose(const A& a) {
         Node{
             a.get_node(),
             [](const auto& dl_df) {
-                PROFILE_SCOPE("transpose_grad");
+                PROFILE_SCOPE("transpose::grad");
                 return _transpose_no_grad<I1, I2>(dl_df);
             },
         },
@@ -192,7 +191,7 @@ auto _reduce_last(const A& a, auto forward, auto backward) {
     Tensor<NewShape, typename A::DType, Node> result{Node{
         a.get_node(),
         [a, backward](const auto& dl_df) {
-            PROFILE_SCOPE("_reduce_last_grad");
+            PROFILE_SCOPE("_reduce_last::grad");
             Tensor<typename A::Shape, typename A::DType> dl_da;
 
 #pragma omp parallel for
@@ -250,7 +249,7 @@ auto repeat(const A& a) {
     Tensor<NewShape, typename A::DType, Node> result{Node{
         a.get_node(),
         [a, idx](const auto& dl_df) {
-            PROFILE_SCOPE("repeat_grad");
+            PROFILE_SCOPE("repeat::grad");
             Tensor<typename A::Shape, typename A::DType> dl_da;
 
 #pragma omp parallel for
@@ -311,7 +310,7 @@ auto matmul(const A& a, const B& b) {
 
 template <IsTensor A>
 auto operator-(const A& a) {
-    PROFILE_SCOPE("operator-_unary");
+    PROFILE_SCOPE("operator-::unary");
     return _unary_op(a, [](auto x) { return -x; }, [](auto x) { return -1; });
 }
 
@@ -348,7 +347,7 @@ auto relu(const A& a) {
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator+(const A& a, const B& b) {
-    PROFILE_SCOPE("operator+_tensor_tensor");
+    PROFILE_SCOPE("operator+::tensor_tensor");
     return _binary_op(
         a, b, [](auto x, auto y) { return x + y; }, [](auto x, auto y) { return 1; }, [](auto x, auto y) { return 1; });
 }
@@ -356,7 +355,7 @@ auto operator+(const A& a, const B& b) {
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator-(const A& a, const B& b) {
-    PROFILE_SCOPE("operator-_tensor_tensor");
+    PROFILE_SCOPE("operator-::tensor_tensor");
     return _binary_op(
         a, b, [](auto x, auto y) { return x - y; }, [](auto x, auto y) { return 1; },
         [](auto x, auto y) { return -1; });
@@ -365,7 +364,7 @@ auto operator-(const A& a, const B& b) {
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator*(const A& a, const B& b) {
-    PROFILE_SCOPE("operator*_tensor_tensor");
+    PROFILE_SCOPE("operator*::tensor_tensor");
     return _binary_op(
         a, b, [](auto x, auto y) { return x * y; }, [](auto x, auto y) { return y; }, [](auto x, auto y) { return x; });
 }
@@ -373,7 +372,7 @@ auto operator*(const A& a, const B& b) {
 template <IsFloatTensor A, IsFloatTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator/(const A& a, const B& b) {
-    PROFILE_SCOPE("operator/_tensor_tensor");
+    PROFILE_SCOPE("operator/::tensor_tensor");
     return _binary_op(
         a, b, [](auto x, auto y) { return x / y; }, [](auto x, auto y) { return 1 / y; },
         [](auto x, auto y) { return -x / (y * y); });
@@ -392,49 +391,49 @@ auto operator==(const A& a, const B& b) {
 
 template <IsTensor A>
 auto operator+(const A& a, typename A::DType b) {
-    PROFILE_SCOPE("operator+_tensor_scalar");
+    PROFILE_SCOPE("operator+::tensor_scalar");
     return _unary_op(a, [b](auto x) { return x + b; }, [](auto x) { return 1; });
 }
 
 template <IsTensor B>
 auto operator+(typename B::DType a, const B& b) {
-    PROFILE_SCOPE("operator+_scalar_tensor");
+    PROFILE_SCOPE("operator+::scalar_tensor");
     return _unary_op(b, [a](auto x) { return a + x; }, [](auto x) { return 1; });
 }
 
 template <IsTensor A>
 auto operator-(const A& a, typename A::DType b) {
-    PROFILE_SCOPE("operator-_tensor_scalar");
+    PROFILE_SCOPE("operator-::tensor_scalar");
     return _unary_op(a, [b](auto x) { return x - b; }, [](auto x) { return 1; });
 }
 
 template <IsTensor B>
 auto operator-(typename B::DType a, const B& b) {
-    PROFILE_SCOPE("operator-_scalar_tensor");
+    PROFILE_SCOPE("operator-::scalar_tensor");
     return _unary_op(b, [a](auto x) { return a - x; }, [](auto x) { return -1; });
 }
 
 template <IsTensor A>
 auto operator*(const A& a, typename A::DType b) {
-    PROFILE_SCOPE("operator*_tensor_scalar");
+    PROFILE_SCOPE("operator*::tensor_scalar");
     return _unary_op(a, [b](auto x) { return x * b; }, [b](auto x) { return b; });
 }
 
 template <IsTensor B>
 auto operator*(typename B::DType a, const B& b) {
-    PROFILE_SCOPE("operator*_scalar_tensor");
+    PROFILE_SCOPE("operator*::scalar_tensor");
     return _unary_op(b, [a](auto x) { return a * x; }, [a](auto x) { return a; });
 }
 
 template <IsFloatTensor A>
 auto operator/(const A& a, typename A::DType b) {
-    PROFILE_SCOPE("operator/_tensor_scalar");
+    PROFILE_SCOPE("operator/::tensor_scalar");
     return _unary_op(a, [b](auto x) { return x / b; }, [b](auto x) { return 1 / b; });
 }
 
 template <IsFloatTensor B>
 auto operator/(typename B::DType a, const B& b) {
-    PROFILE_SCOPE("operator/_scalar_tensor");
+    PROFILE_SCOPE("operator/::scalar_tensor");
     return _unary_op(b, [a](auto x) { return a / x; }, [a](auto x) { return -a / (x * x); });
 }
 

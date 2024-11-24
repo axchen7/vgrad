@@ -6,6 +6,7 @@
 #include <iostream>
 #include <memory>
 
+#include "profile.h"
 #include "shape.h"
 
 namespace vgrad {

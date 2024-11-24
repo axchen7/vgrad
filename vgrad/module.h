@@ -22,7 +22,10 @@ auto make_params(Params&... params) {
 template <IsDimension In, IsDimension Out, Number DType>
 class Linear {
    public:
-    auto forward(const auto& x) const { return matmul(x, w) + b; }
+    auto forward(const auto& x) const {
+        PROFILE_SCOPE("Linear::forward");
+        return matmul(x, w) + b;
+    }
     auto params() { return make_params(w, b); }
 
    private:

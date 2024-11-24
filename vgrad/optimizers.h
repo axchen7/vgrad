@@ -16,6 +16,8 @@ class SGD {
     template <IsScalarTensor Loss>
         requires IsFloatTensor<Loss>
     void step(const Loss& loss) {
+        PROFILE_SCOPE("SGD::step");
+
         auto grads_tuple = std::apply([&loss](auto&... params) { return backward(loss, params...); }, params_);
 
         std::apply(
@@ -55,6 +57,7 @@ class Adam {
     template <IsScalarTensor Loss>
         requires IsFloatTensor<Loss>
     void step(const Loss& loss) {
+        PROFILE_SCOPE("Adam::step");
         // implementation of https://pytorch.org/docs/stable/generated/torch.optim.Adam.html
 
         // g <- dL/dw
