@@ -7,6 +7,7 @@
 #include <stdexcept>
 
 #include "graph.h"
+#include "profile.h"
 #include "tensor.h"
 
 namespace vgrad {
@@ -19,13 +20,17 @@ using OneDimension = Dimension<1>;  // for unsqueeze
 template <IsShape NewShape, IsTensor A>
     requires(A::Shape::flat_size == NewShape::flat_size)
 auto reshape(const A& a) {
+    PROFILE_SCOPE("reshape");
     using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
 
     return Tensor<NewShape, typename A::DType, Node>{
         a.get_data(),
         Node{
             a.get_node(),
-            [](const auto& dl_df) { return Tensor<typename A::Shape, typename A::DType>{dl_df.get_data()}; },
+            [](const auto& dl_df) {
+                PROFILE_SCOPE("reshape_grad");
+                return Tensor<typename A::Shape, typename A::DType>{dl_df.get_data()};
+            },
         },
     };
 }
@@ -34,6 +39,7 @@ template <IsShape NewShape, IsTensor B>
     requires TensorShapeBroadcastCompatible<Tensor<NewShape, typename B::DType>, B> &&
              (NewShape::rank >= B::Shape::rank)
 auto broadcast(const B& b) {
+    PROFILE_SCOPE("broadcast");
     if constexpr (NewShape::rank == B::Shape::rank) {
         return b;
     } else {
@@ -44,11 +50,13 @@ auto broadcast(const B& b) {
 
 template <IsTensor A>
 auto _unary_op(const A& a, auto forward, auto backward) {
+    PROFILE_SCOPE("_unary_op");
     using Node = UnaryOpNode<typename A::Node, typename A::Shape, typename A::DType>;
 
     Tensor<typename A::Shape, typename A::DType, Node> result{Node{
         a.get_node(),
         [a, backward](const auto& dl_df) {
+            PROFILE_SCOPE("_unary_op_grad");
             Tensor<typename A::Shape, typename A::DType> dl_da;
 
 #pragma omp parallel for
@@ -71,12 +79,14 @@ auto _unary_op(const A& a, auto forward, auto backward) {
 
 template <IsTensor A, IsTensor B>
 auto _binary_op_same_shape(const A& a, const B& b, auto forward, auto backward_a, auto backward_b) {
+    PROFILE_SCOPE("_binary_op_same_shape");
     using Node = BinaryOpNode<typename A::Node, typename B::Node, typename A::Shape, typename A::DType>;
 
     Tensor<typename A::Shape, typename A::DType, Node> result{Node{
         a.get_node(),
         b.get_node(),
         [a, b, backward_a, backward_b](const auto& dl_df) {
+            PROFILE_SCOPE("_binary_op_same_shape_grad");
             Tensor<typename A::Shape, typename A::DType> dl_da;
             Tensor<typename B::Shape, typename B::DType> dl_db;
 
@@ -103,6 +113,7 @@ auto _binary_op_same_shape(const A& a, const B& b, auto forward, auto backward_a
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto _binary_op(const A& a, const B& b, auto forward, auto backward_a, auto backward_b) {
+    PROFILE_SCOPE("_binary_op");
     if constexpr (A::Shape::rank > B::Shape::rank) {
         return _binary_op_same_shape(a, broadcast<typename A::Shape>(b), forward, backward_a, backward_b);
     } else {
@@ -112,6 +123,7 @@ auto _binary_op(const A& a, const B& b, auto forward, auto backward_a, auto back
 
 template <Index I1, Index I2, IsTensor A>
 auto _transpose_no_grad(const A& a) {
+    PROFILE_SCOPE("_transpose_no_grad");
     using NewShape = typename A::Shape::template Transpose<I1, I2>;
 
     if constexpr (std::is_same_v<NewShape, typename A::Shape>) {
@@ -136,6 +148,7 @@ auto _transpose_no_grad(const A& a) {
 
 template <Index I1, Index I2, IsTensor A>
 auto transpose(const A& a) {
+    PROFILE_SCOPE("transpose");
     auto raw_result = _transpose_no_grad<I1, I2>(a);
 
     using NewShape = typename decltype(raw_result)::Shape;
@@ -145,7 +158,10 @@ auto transpose(const A& a) {
         raw_result.get_data(),
         Node{
             a.get_node(),
-            [](const auto& dl_df) { return _transpose_no_grad<I1, I2>(dl_df); },
+            [](const auto& dl_df) {
+                PROFILE_SCOPE("transpose_grad");
+                return _transpose_no_grad<I1, I2>(dl_df);
+            },
         },
     };
 }
@@ -154,18 +170,21 @@ auto transpose(const A& a) {
 template <Index I, IsTensor A>
     requires(A::Shape::template At<I>::value == 1)
 auto squeeze(const A& a) {
+    PROFILE_SCOPE("squeeze");
     using NewShape = typename A::Shape::template Remove<I>;
     return reshape<NewShape>(a);
 }
 
 template <Index I, IsTensor A>
 auto unsqueeze(const A& a) {
+    PROFILE_SCOPE("unsqueeze");
     using NewShape = typename A::Shape::template Insert<I, OneDimension>;
     return reshape<NewShape>(a);
 }
 
 template <IsTensor A>
 auto _reduce_last(const A& a, auto forward, auto backward) {
+    PROFILE_SCOPE("_reduce_last");
     using LastDim = typename A::Shape::template At<-1>;
     using NewShape = typename A::Shape::template Remove<-1>;
     using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
@@ -173,6 +192,7 @@ auto _reduce_last(const A& a, auto forward, auto backward) {
     Tensor<NewShape, typename A::DType, Node> result{Node{
         a.get_node(),
         [a, backward](const auto& dl_df) {
+            PROFILE_SCOPE("_reduce_last_grad");
             Tensor<typename A::Shape, typename A::DType> dl_da;
 
 #pragma omp parallel for
@@ -200,6 +220,7 @@ auto _reduce_last(const A& a, auto forward, auto backward) {
 template <Index I, bool KeepDim, IsTensor A>
     requires IsValidIndex<typename A::Shape, I>
 auto _reduce(const A& a, auto forward, auto backward) {
+    PROFILE_SCOPE("_reduce");
     // pivot index I to the last dimension
     // (must use normalized idx because we change the rank)
     constexpr auto idx = A::Shape::template normalize_index<I>();
@@ -219,6 +240,7 @@ auto _reduce(const A& a, auto forward, auto backward) {
 template <Index I, IsDimension Dim, IsTensor A>
     requires(A::Shape::template At<I>::value == 1)
 auto repeat(const A& a) {
+    PROFILE_SCOPE("repeat");
     // (must use normalized idx because we change the rank)
     constexpr auto idx = A::Shape::template normalize_index<I>();
 
@@ -228,6 +250,7 @@ auto repeat(const A& a) {
     Tensor<NewShape, typename A::DType, Node> result{Node{
         a.get_node(),
         [a, idx](const auto& dl_df) {
+            PROFILE_SCOPE("repeat_grad");
             Tensor<typename A::Shape, typename A::DType> dl_da;
 
 #pragma omp parallel for
@@ -261,6 +284,7 @@ auto repeat(const A& a) {
 template <IsTensor A, IsTensor B>
     requires TensorDTypeCompatible<A, B> && TensorMatmulCompatible<A, B>
 auto matmul(const A& a, const B& b) {
+    PROFILE_SCOPE("matmul");
     // A has shape .. x M x N
     // B has shape .. x N x P
     using M = typename A::Shape::template At<-2>;
@@ -287,37 +311,44 @@ auto matmul(const A& a, const B& b) {
 
 template <IsTensor A>
 auto operator-(const A& a) {
+    PROFILE_SCOPE("operator-_unary");
     return _unary_op(a, [](auto x) { return -x; }, [](auto x) { return -1; });
 }
 
 template <IsFloatTensor A>
 auto exp(const A& a) {
+    PROFILE_SCOPE("exp");
     return _unary_op(a, [](auto x) { return std::exp(x); }, [](auto x) { return std::exp(x); });
 }
 
 template <IsFloatTensor A>
 auto log(const A& a) {
+    PROFILE_SCOPE("log");
     return _unary_op(a, [](auto x) { return std::log(x); }, [](auto x) { return 1 / x; });
 }
 
 template <IsTensor A>
 auto pow(const A& a, typename A::DType b) {
+    PROFILE_SCOPE("pow");
     return _unary_op(a, [b](auto x) { return std::pow(x, b); }, [b](auto x) { return b * std::pow(x, b - 1); });
 }
 
 template <IsTensor A>
 auto sqrt(const A& a) {
+    PROFILE_SCOPE("sqrt");
     return pow(a, 0.5);
 }
 
 template <IsFloatTensor A>
 auto relu(const A& a) {
+    PROFILE_SCOPE("relu");
     return _unary_op(a, [](auto x) { return x > 0 ? x : 0; }, [](auto x) { return x > 0 ? 1 : 0; });
 }
 
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator+(const A& a, const B& b) {
+    PROFILE_SCOPE("operator+_tensor_tensor");
     return _binary_op(
         a, b, [](auto x, auto y) { return x + y; }, [](auto x, auto y) { return 1; }, [](auto x, auto y) { return 1; });
 }
@@ -325,6 +356,7 @@ auto operator+(const A& a, const B& b) {
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator-(const A& a, const B& b) {
+    PROFILE_SCOPE("operator-_tensor_tensor");
     return _binary_op(
         a, b, [](auto x, auto y) { return x - y; }, [](auto x, auto y) { return 1; },
         [](auto x, auto y) { return -1; });
@@ -333,6 +365,7 @@ auto operator-(const A& a, const B& b) {
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator*(const A& a, const B& b) {
+    PROFILE_SCOPE("operator*_tensor_tensor");
     return _binary_op(
         a, b, [](auto x, auto y) { return x * y; }, [](auto x, auto y) { return y; }, [](auto x, auto y) { return x; });
 }
@@ -340,6 +373,7 @@ auto operator*(const A& a, const B& b) {
 template <IsFloatTensor A, IsFloatTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator/(const A& a, const B& b) {
+    PROFILE_SCOPE("operator/_tensor_tensor");
     return _binary_op(
         a, b, [](auto x, auto y) { return x / y; }, [](auto x, auto y) { return 1 / y; },
         [](auto x, auto y) { return -x / (y * y); });
@@ -348,6 +382,7 @@ auto operator/(const A& a, const B& b) {
 template <IsTensor A, IsTensor B>
     requires TensorBinaryOpCompatible<A, B>
 auto operator==(const A& a, const B& b) {
+    PROFILE_SCOPE("operator==");
     // backward is never used
     auto result = _binary_op(
         a, b, [](auto x, auto y) { return x == y ? 1 : 0; }, [](auto x, auto y) { return 0; },
@@ -357,47 +392,56 @@ auto operator==(const A& a, const B& b) {
 
 template <IsTensor A>
 auto operator+(const A& a, typename A::DType b) {
+    PROFILE_SCOPE("operator+_tensor_scalar");
     return _unary_op(a, [b](auto x) { return x + b; }, [](auto x) { return 1; });
 }
 
 template <IsTensor B>
 auto operator+(typename B::DType a, const B& b) {
+    PROFILE_SCOPE("operator+_scalar_tensor");
     return _unary_op(b, [a](auto x) { return a + x; }, [](auto x) { return 1; });
 }
 
 template <IsTensor A>
 auto operator-(const A& a, typename A::DType b) {
+    PROFILE_SCOPE("operator-_tensor_scalar");
     return _unary_op(a, [b](auto x) { return x - b; }, [](auto x) { return 1; });
 }
 
 template <IsTensor B>
 auto operator-(typename B::DType a, const B& b) {
+    PROFILE_SCOPE("operator-_scalar_tensor");
     return _unary_op(b, [a](auto x) { return a - x; }, [](auto x) { return -1; });
 }
 
 template <IsTensor A>
 auto operator*(const A& a, typename A::DType b) {
+    PROFILE_SCOPE("operator*_tensor_scalar");
     return _unary_op(a, [b](auto x) { return x * b; }, [b](auto x) { return b; });
 }
 
 template <IsTensor B>
 auto operator*(typename B::DType a, const B& b) {
+    PROFILE_SCOPE("operator*_scalar_tensor");
     return _unary_op(b, [a](auto x) { return a * x; }, [a](auto x) { return a; });
 }
 
 template <IsFloatTensor A>
 auto operator/(const A& a, typename A::DType b) {
+    PROFILE_SCOPE("operator/_tensor_scalar");
     return _unary_op(a, [b](auto x) { return x / b; }, [b](auto x) { return 1 / b; });
 }
 
 template <IsFloatTensor B>
 auto operator/(typename B::DType a, const B& b) {
+    PROFILE_SCOPE("operator/_scalar_tensor");
     return _unary_op(b, [a](auto x) { return a / x; }, [a](auto x) { return -a / (x * x); });
 }
 
 template <Index I = -1, bool KeepDim = false, IsTensor A>
     requires IsValidIndex<typename A::Shape, I>
 auto sum(const A& a) {
+    PROFILE_SCOPE("sum");
     return _reduce<I, KeepDim>(
         a,
         [](auto x) {
@@ -416,6 +460,7 @@ auto sum(const A& a) {
 template <Index I = -1, bool KeepDim = false, IsTensor A>
     requires IsValidIndex<typename A::Shape, I>
 auto prod(const A& a) {
+    PROFILE_SCOPE("prod");
     return _reduce<I, KeepDim>(
         a,
         [](std::span<const typename A::DType> x) {
@@ -441,6 +486,7 @@ auto prod(const A& a) {
 template <Index I = -1, bool KeepDim = false, IsTensor A>
     requires IsValidIndex<typename A::Shape, I>
 auto logsumexp(const A& a) {
+    PROFILE_SCOPE("logsumexp");
     // must avoid exp() of a large input
     // log(sum(exp(a))) = log(sum(exp(a-max[a])) * exp(max[a])) = log(sum(exp(a-max[a]))) + max[a]
     auto max_a = max<I, KeepDim>(a).detach();
@@ -450,6 +496,7 @@ auto logsumexp(const A& a) {
 
 template <Index I = -1, bool KeepDim = false, IsTensor A>
 auto mean(const A& a) {
+    PROFILE_SCOPE("mean");
     using SumDim = typename A::Shape::template At<I>;
     return sum<I, KeepDim>(a) / SumDim::value;
 }
@@ -457,6 +504,7 @@ auto mean(const A& a) {
 template <Index I = -1, bool KeepDim = false, IsTensor A>
     requires IsValidIndex<typename A::Shape, I>
 auto max(const A& a) {
+    PROFILE_SCOPE("max");
     return _reduce<I, KeepDim>(
         a, [](auto x) { return *std::max_element(x.begin(), x.end()); },
         [](auto x) {
@@ -473,11 +521,13 @@ auto max(const A& a) {
 template <Index I = -1, bool KeepDim = false, IsTensor A>
     requires IsValidIndex<typename A::Shape, I>
 auto min(const A& a) {
+    PROFILE_SCOPE("min");
     return -max<I, KeepDim>(-a);
 }
 
 template <Number DType, IsTensor A>
 auto _argmax_last(const A& a) {
+    PROFILE_SCOPE("_argmax_last");
     using LastDim = typename A::Shape::template At<-1>;
     using NewShape = typename A::Shape::template Remove<-1>;
 
@@ -496,6 +546,7 @@ auto _argmax_last(const A& a) {
 template <Index I = -1, IsTensor A, Number DType = typename A::DType>
     requires IsValidIndex<typename A::Shape, I>
 auto argmax(const A& a) {
+    PROFILE_SCOPE("argmax");
     // pivot index I to the last dimension
     // (must use normalized idx because we change the rank)
     constexpr auto idx = A::Shape::template normalize_index<I>();
@@ -506,12 +557,14 @@ auto argmax(const A& a) {
 template <Index I = -1, IsTensor A, Number DType = typename A::DType>
     requires IsValidIndex<typename A::Shape, I>
 auto argmin(const A& a) {
+    PROFILE_SCOPE("argmin");
     return argmax<I, A, DType>(-a);
 }
 
 template <IsDimension Classes, IsTensor A, Number DType = typename A::DType>
     requires IsIntegralTensor<A>
 auto one_hot(const A& a) {
+    PROFILE_SCOPE("one_hot");
     using NewShape = typename A::Shape::template Insert<A::Shape::rank, Classes>;
 
     Tensor<NewShape, DType> result;
@@ -530,6 +583,7 @@ auto one_hot(const A& a) {
 
 template <Index I = -1, IsTensor A>
 auto softmax(const A& a) {
+    PROFILE_SCOPE("softmax");
     // must avoid exp() of a large input
     // exp(a_i)/sum(exp(a)) = exp(a_i-max[a])/sum(exp(a-max[a]))
     auto max_a = max<I, true>(a).detach();
@@ -542,12 +596,14 @@ auto softmax(const A& a) {
 // https://pytorch.org/docs/stable/generated/torch.nn.LogSoftmax.html#torch.nn.LogSoftmax
 template <Index I = -1, IsTensor A>
 auto log_softmax(const A& a) {
+    PROFILE_SCOPE("log_softmax");
     // log(exp(a_i)/sum(exp(a))) = a_i - log(sum(exp(a)))
     return a - logsumexp<I, true>(a);
 }
 
 template <IsTensor Logits, IsTensor Target>
 auto cross_entropy(const Logits& logits, const Target& target) {
+    PROFILE_SCOPE("cross_entropy");
     // from https://ml-cheatsheet.readthedocs.io/en/latest/loss_functions.html
     using Classes = typename Logits::Shape::template At<-1>;
     auto log_probs = log_softmax(logits);
