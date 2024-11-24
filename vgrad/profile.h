@@ -6,6 +6,8 @@
 #include <iostream>
 #include <vector>
 
+#define PROFILE_SCOPE(label) auto _profile_scope = vgrad::profile::_global_profile_instance.profile_scope(label)
+
 namespace vgrad::profile {
 
 using Granularity = std::chrono::milliseconds;
@@ -94,8 +96,6 @@ class ProfileInstance {
 };
 
 ProfileInstance _global_profile_instance;
-
-#define PROFILE_SCOPE(label) auto _profile_scope = _global_profile_instance.profile_scope(label)
 
 }  // namespace vgrad::profile
 

@@ -2,8 +2,6 @@
 
 #include <thread>
 
-using namespace vgrad::profile;
-
 void bar() {
     PROFILE_SCOPE("bar");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
