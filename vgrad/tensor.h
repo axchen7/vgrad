@@ -113,7 +113,7 @@ template <IsShape Shape, Number DType, typename Node>
     requires(Shape::rank == 1)
 std::ostream& operator<<(std::ostream& os, const Tensor<Shape, DType, Node>& tensor) {
     const auto& data = tensor.nested_view();
-    os << "[\n";
+    os << "[ ";
     for (Size i = 0; i < Shape::flat_size; i++) {
         os << data[i] << ' ';
     }
