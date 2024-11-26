@@ -11,6 +11,7 @@
 namespace vgrad::profile {
 
 using Granularity = std::chrono::milliseconds;
+const std::string granularity_suffix = "ms";
 
 class ProfileNode {
    public:
@@ -82,7 +83,7 @@ class ProfileInstance {
             for (int i = 0; i < depth; i++) {
                 std::cout << "  ";
             }
-            std::cout << node.label << ": " << node.duration() << "\n";
+            std::cout << node.label << ": " << node.duration().count() << " " << granularity_suffix << "\n";
         }
         for (const auto& child : node.children) {
             print_profile_rec(child, depth + 1);

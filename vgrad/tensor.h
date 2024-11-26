@@ -11,6 +11,7 @@
 
 namespace vgrad {
 
+#ifdef __APPLE__
 template <typename DType>
 constexpr std::string dtype_to_string() {
     if constexpr (std::is_same_v<DType, float>) {
@@ -25,6 +26,7 @@ constexpr std::string dtype_to_string() {
         return "unknown";
     }
 }
+#endif
 
 template <IsShape _OutShape, Number _DType>
 struct LeafNode {
@@ -94,11 +96,13 @@ class Tensor {
     // flat_view() instead.
     FlatData& _flat_data() { return *data_; }
 
+#ifdef __APPLE__
     static constexpr auto typehint_type() {
         auto shape = Shape::typehint_type();
         auto type = dtype_to_string<DType>();
         return shape + ", " + type;
     }
+#endif
 
    private:
     std::shared_ptr<FlatData> data_;
