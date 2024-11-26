@@ -83,7 +83,7 @@ class ProfileInstance {
             for (int i = 0; i < depth; i++) {
                 std::cout << "  ";
             }
-            std::cout << node.label << ": " << node.duration().count() << " " << granularity_suffix << "\n";
+            std::cout << node.label << ": " << node.duration().count() << granularity_suffix << "\n";
         }
         for (const auto& child : node.children) {
             print_profile_rec(child, depth + 1);
