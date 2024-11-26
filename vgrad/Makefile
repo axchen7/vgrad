@@ -10,6 +10,9 @@ mnist:
 profile:
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) profile.cpp -o profile.out $(LDFLAGS)
 
+regression:
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) regression.cpp -o regression.out $(LDFLAGS)
+
 .PHONY: clean
 
 clean:

@@ -41,6 +41,18 @@ constexpr auto ones() {
     return full<DType, Shape>(1);
 }
 
+template <typename DType, IsDimension Dim>
+constexpr auto arange() {
+    PROFILE_SCOPE("arange");
+    Dim dim;
+    auto shape = make_shape(dim);
+    Tensor<decltype(shape), DType> result;
+    for (Size i = 0; i < Dim::value; i++) {
+        result._flat_data()[i] = i;
+    }
+    return result;
+}
+
 template <IsTensor T>
 constexpr auto full_like(const T& tensor, typename T::DType value) {
     PROFILE_SCOPE("full_like");
