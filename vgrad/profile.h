@@ -78,10 +78,12 @@ class ProfileInstance {
     ProfileNode* current = &root;  // never set to nullptr
 
     void print_profile_rec(const ProfileNode& node, const int depth) const {
-        for (int i = 0; i < depth; i++) {
-            std::cout << "  ";
+        if (node.duration() > Granularity{0}) {
+            for (int i = 0; i < depth; i++) {
+                std::cout << "  ";
+            }
+            std::cout << node.label << ": " << node.duration() << "\n";
         }
-        std::cout << node.label << ": " << node.duration() << "\n";
         for (const auto& child : node.children) {
             print_profile_rec(child, depth + 1);
         }

@@ -12,6 +12,7 @@ template <IsDimension In, IsDimension Out, Number DType, IsDimension Inner>
 class Model {
    public:
     auto forward(const auto& x) const {
+        PROFILE_SCOPE("Model::forward");
         auto o1 = layer1.forward(x);
         auto o2 = relu(o1);
         auto o3 = layer2.forward(o2);
@@ -27,6 +28,7 @@ class Model {
 
 template <IsTensor Out, IsTensor Labels>
 auto compute_accuracy(const Out& out, const Labels& labels) {
+    PROFILE_SCOPE("compute_accuracy");
     auto predictions = argmax<-1, Out, int32_t>(out);
     float matches = sum(predictions == labels).value();
     return matches / Labels::Shape::flat_size;
@@ -55,11 +57,13 @@ int main() {
     Model<FlatSize, Classes, float, Inner> model;
 
     const float lr = 0.1;
-    const int epochs = 400;
+    const int epochs = 4;
 
     optim::Adam optimizer{lr, model.params()};
 
     for (int epoch = 0; epoch < epochs; epoch++) {
+        PROFILE_SCOPE("epoch");
+
         auto train_out = model.forward(train_flat);
         auto train_loss = cross_entropy(train_out, train_labels);
         optimizer.step(train_loss);
