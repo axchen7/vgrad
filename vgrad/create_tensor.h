@@ -53,6 +53,18 @@ constexpr auto arange() {
     return result;
 }
 
+template <typename DType, IsShape Shape>
+auto randn() {
+    PROFILE_SCOPE("randn");
+    std::normal_distribution<DType> dist(0, 1);
+
+    Tensor<Shape, DType> result;
+    for (Size i = 0; i < Shape::flat_size; i++) {
+        result._flat_data()[i] = dist(eng);
+    }
+    return result;
+}
+
 template <IsTensor T>
 constexpr auto full_like(const T& tensor, typename T::DType value) {
     PROFILE_SCOPE("full_like");
@@ -71,16 +83,10 @@ constexpr auto ones_like(const T& tensor) {
     return ones<typename T::DType, typename T::Shape>();
 }
 
-template <typename DType, IsShape Shape>
-auto randn() {
-    PROFILE_SCOPE("randn");
-    std::normal_distribution<DType> dist(0, 1);
-
-    Tensor<Shape, DType> result;
-    for (Size i = 0; i < Shape::flat_size; i++) {
-        result._flat_data()[i] = dist(eng);
-    }
-    return result;
+template <IsTensor T>
+auto randn_like(const T& tensor) {
+    PROFILE_SCOPE("randn_like");
+    return randn<typename T::DType, typename T::Shape>();
 }
 
 }  // namespace vgrad
