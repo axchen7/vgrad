@@ -57,6 +57,26 @@ constexpr auto add_const_terms(Const1, Const2) {
 template <IsConstant Const1, IsConstant Const2>
 using AddConstants = decltype(add_const_terms(Const1{}, Const2{}));
 
+static constexpr auto product_typehint_(const std::string a, const std::string b) {
+    if (typehint::string_compare(a, "1") == 0) {
+        return b;
+    } else if (typehint::string_compare(b, "1") == 0) {
+        return a;
+    } else {
+        return a + " x " + b;
+    }
+}
+
+static constexpr auto sum_typehint_(const std::string a, const std::string b) {
+    if (typehint::string_compare(a, "0") == 0) {
+        return b;
+    } else if (typehint::string_compare(b, "0") == 0) {
+        return a;
+    } else {
+        return a + " + " + b;
+    }
+}
+
 template <IsDimension _Dim, int _power>
 struct PolyTerm {
     static constexpr bool is_poly_term = true;
@@ -110,7 +130,7 @@ struct ProductTerm {
         if constexpr (std::is_same_v<Inner, EmptyProductTerm>) {
             return Outer::typehint_type();
         } else {
-            return Outer::typehint_type() + " x " + Inner::sorted_typehint_type_();
+            return product_typehint_(Outer::typehint_type(), Inner::sorted_typehint_type_());
         }
     }
 
@@ -127,7 +147,9 @@ struct ConstProductTerm {
     using Constant = _Constant;
     using Product = _Product;
 
-    static constexpr auto typehint_type() { return Constant::typehint_type() + " x " + Product::typehint_type(); }
+    static constexpr auto typehint_type() {
+        return product_typehint_(Constant::typehint_type(), Product::typehint_type());
+    }
 };
 
 struct EmptyComplexity {
@@ -135,7 +157,7 @@ struct EmptyComplexity {
 
     static constexpr auto normalized() { return EmptyComplexity{}; }
 
-    static constexpr auto typehint_type() { return "0"; }
+    static constexpr std::string typehint_type() { return "0"; }
 };
 
 // sum of products
@@ -171,7 +193,8 @@ struct Complexity {
         if constexpr (std::is_same_v<Inner, EmptyComplexity>) {
             return Outer::typehint_type();
         } else {
-            return Outer::typehint_type() + " + " + Inner::sorted_typehint_type_();
+            // return Outer::typehint_type() + " + " + Inner::sorted_typehint_type_();
+            return sum_typehint_(Outer::typehint_type(), Inner::sorted_typehint_type_());
         }
     }
 
