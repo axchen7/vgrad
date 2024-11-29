@@ -8,7 +8,8 @@ def main():
     typehint_include = '#include "typehint.h"\n'
     extra_flags = ["-fsyntax-only", "-Wunused"]
     typehint_id_prefix = "_typehint_id"
-    typehint_trigger = "typehint"
+    # typehint_trigger = "typehint"
+    typehint_triggers = ["🔍", "typehint"]
     typehint_print_val_type = "TYPEHINT_PRINT_VAL_TYPE"
     typehint_print_using_type = "TYPEHINT_PRINT_USING_TYPE"
     typehint_type_passthrough = "TYPEHINT_TYPE_PASSTHROUGH"
@@ -33,7 +34,7 @@ def main():
     version2_lines = []
 
     for line in lines:
-        if f"// {typehint_trigger}" in line:
+        if any(f"// {trigger}" in line for trigger in typehint_triggers):
             id_counter += 1
             id_str = f"{typehint_id_prefix}:{id_counter}"
             id_map[id_str] = []
@@ -59,6 +60,7 @@ def main():
                 version2_lines.append(line_v2)
             else:
                 expr = before_comment.strip().rstrip(";")
+                expr = f"({expr})"
                 line_v2 = f'{print_fn}("{id_str}", {expr});\n'
                 version2_lines.append(line_v2)
         else:
@@ -104,7 +106,7 @@ def main():
                 id_str = match.group(0)
                 type_list = id_map.get(id_str) or ["Untraced"]
                 type_list_str = " ".join([f"[{t}]" for t in type_list])
-                line = re.sub(id_regex, f"{typehint_trigger}: {type_list_str}", line)
+                line = re.sub(id_regex, f"{typehint_triggers[0]} {type_list_str}", line)
 
             updated_lines.append(line)
 
