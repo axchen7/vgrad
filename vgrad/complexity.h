@@ -47,7 +47,7 @@ struct Constant {
         if constexpr (is_zero) {
             return "0";
         } else {
-            return typehint::to_string(value) + std::string{unit.value};
+            return typehint::to_string(value) + " " + std::string{unit.value};
         }
     }
 };
