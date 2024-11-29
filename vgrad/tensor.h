@@ -109,6 +109,17 @@ class Tensor {
     // flat_view() instead.
     FlatData& _flat_data() { return *data_; }
 
+    auto& bind_profile(profile::ProfileNode& profile_node) const {
+        profile_node.add_hook([](profile::ProfileHookDuration duration, std::ostream& os) {
+            auto per_op_duration = duration / time_complexity.total.value;
+            os << per_op_duration << " / " << time_complexity.total.unit;
+        });
+        profile_node.add_hook([](profile::ProfileHookDuration duration, std::ostream& os) {
+            os << time_complexity.total.typehint_type() << " total";
+        });
+        return *this;
+    }
+
 #ifdef __APPLE__
     static constexpr auto typehint_type() {
         auto shape = Shape::typehint_type();

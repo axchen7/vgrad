@@ -43,7 +43,7 @@ auto broadcast(const B& b) {
         return b;
     } else {
         using Repeat = Dimension<NewShape::flat_size / B::Shape::flat_size>;
-        return reshape<NewShape>(repeat<0, Repeat>(unsqueeze<0>(b)));
+        return reshape<NewShape>(repeat<0, Repeat>(unsqueeze<0>(b))).bind_profile(PROFILE_NODE);
     }
 }
 
@@ -74,7 +74,7 @@ auto _unary_op(const A& a, auto forward, auto backward) {
         result._flat_data()[i] = forward(a.flat_view()[i]);
     }
 
-    return result;
+    return result.bind_profile(PROFILE_NODE);
 }
 
 template <IsTensor A, IsTensor B>
@@ -108,7 +108,7 @@ auto _binary_op_same_shape(const A& a, const B& b, auto forward, auto backward_a
         result._flat_data()[i] = forward(a.flat_view()[i], b.flat_view()[i]);
     }
 
-    return result;
+    return result.bind_profile(PROFILE_NODE);
 }
 
 template <IsTensor A, IsTensor B>
@@ -165,7 +165,8 @@ auto transpose(const A& a) {
                 return _transpose_no_grad<I1, I2>(dl_df);
             },
         },
-    };
+    }
+        .bind_profile(PROFILE_NODE);
 }
 
 // Remove a singleton dimension from a tensor.
@@ -217,7 +218,7 @@ auto _reduce_last(const A& a, auto forward, auto backward) {
         result._flat_data()[i] = forward(slice);
     }
 
-    return result;
+    return result.bind_profile(PROFILE_NODE);
 }
 
 template <Index I, bool KeepDim, IsTensor A>
@@ -281,7 +282,7 @@ auto repeat(const A& a) {
         result._flat_data()[i] = a.flat_view()[flat_idx];
     }
 
-    return result;
+    return result.bind_profile(PROFILE_NODE);
 }
 
 template <IsTensor A, IsTensor B>
@@ -309,7 +310,7 @@ auto matmul(const A& a, const B& b) {
     // element-wise multiplication, still .. x M x P x N
     auto h = d * g;
     // collapse the last dimension, yielding .. x M x P
-    return sum(h);
+    return sum(h).bind_profile(PROFILE_NODE);
 }
 
 template <IsTensor A>
@@ -612,7 +613,7 @@ auto cross_entropy(const Logits& logits, const Target& target) {
     auto log_probs = log_softmax(logits);
     auto one_hot_target = one_hot<Classes, Target, typename Logits::DType>(target);
     auto per_input_cross_entropy = -sum(one_hot_target * log_probs);
-    return mean(per_input_cross_entropy);
+    return mean(per_input_cross_entropy).bind_profile(PROFILE_NODE);
 }
 
 }  // namespace vgrad
