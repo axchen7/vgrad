@@ -40,18 +40,33 @@ struct Constant {
     static constexpr ConstantValue value = Value;
     static constexpr typehint::StringLiteral unit = Unit;
 
-    static constexpr auto typehint_type() { return typehint::to_string(value) + " " + std::string{unit.value}; }
+    static constexpr bool is_zero = value == 0 && typehint::string_compare(unit.value, "") == 0;
+
+    static constexpr auto typehint_type() {
+        if constexpr (is_zero) {
+            return "zero";
+        } else {
+            return typehint::to_string(value) + " " + std::string{unit.value};
+        }
+    }
 };
 
 template <typename Const1, typename Const2>
-concept ConstantUnitsMatch =
+concept CanAddConstants =
     IsConstant<Const1> && IsConstant<Const2> &&
-    typehint::string_compare(std::string(Const1::unit.value), std::string(Const2::unit.value)) == 0;
+    (Const1::is_zero || Const2::is_zero ||
+     typehint::string_compare(std::string(Const1::unit.value), std::string(Const2::unit.value)) == 0);
 
 template <IsConstant Const1, IsConstant Const2>
-    requires(ConstantUnitsMatch<Const1, Const2>)
+    requires(CanAddConstants<Const1, Const2>)
 constexpr auto add_const_terms(Const1, Const2) {
-    return Constant<Const1::value + Const2::value, Const1::unit>{};
+    if constexpr (Const1::is_zero) {
+        return Const2{};
+    } else if constexpr (Const2::is_zero) {
+        return Const1{};
+    } else {
+        return Constant<Const1::value + Const2::value, Const1::unit>{};
+    }
 }
 
 template <IsConstant Const1, IsConstant Const2>
@@ -78,11 +93,22 @@ static constexpr auto sum_typehint_(const std::string a, const std::string b) {
 }
 
 template <IsDimension _Dim, int _power>
+    requires(_power >= 0)
 struct PolyTerm {
     static constexpr bool is_poly_term = true;
 
     using Dim = _Dim;
     static constexpr Size power = _power;
+
+    static constexpr ConstantValue total_value_() {
+        ConstantValue result = 1;
+        for (int i = 0; i < power; i++) {
+            result *= Dim::value;
+        }
+        return result;
+    }
+
+    static constexpr ConstantValue total_value = total_value_();
 
     static constexpr auto typehint_type() {
         if constexpr (power == 1) {
@@ -96,6 +122,8 @@ struct PolyTerm {
 struct EmptyProductTerm {
     static constexpr bool is_product_term = true;
 
+    static constexpr ConstantValue total_value = 1;
+
     static constexpr std::string typehint_type() { return "1"; }
 };
 
@@ -105,6 +133,8 @@ struct ProductTerm {
 
     using Outer = _Outer;
     using Inner = _Inner;
+
+    static constexpr ConstantValue total_value = Outer::total_value * Inner::total_value;
 
     // de-dupe and sort
     static constexpr auto normalized() {
@@ -140,20 +170,22 @@ struct ProductTerm {
     }
 };
 
-template <IsConstant _Constant, IsProductTerm _Product>
+template <IsConstant _C, IsProductTerm _Product>
 struct ConstProductTerm {
     static constexpr bool is_const_product_term = true;
 
-    using Constant = _Constant;
+    using C = _C;
     using Product = _Product;
 
-    static constexpr auto typehint_type() {
-        return product_typehint_(Constant::typehint_type(), Product::typehint_type());
-    }
+    using TotalValue = Constant<C::value * Product::total_value, C::unit>;
+
+    static constexpr auto typehint_type() { return product_typehint_(C::typehint_type(), Product::typehint_type()); }
 };
 
 struct EmptyComplexity {
     static constexpr bool is_complexity = true;
+
+    using TotalValue = Constant<0, "">;
 
     static constexpr auto normalized() { return EmptyComplexity{}; }
 
@@ -168,6 +200,8 @@ struct Complexity {
     using Outer = _Outer;
     using Inner = _Inner;
 
+    using TotalValue = AddConstants<typename Outer::TotalValue, typename Inner::TotalValue>;
+
     // de-dupe and sort
     static constexpr auto normalized() {
         using InnerNormalized = decltype(Inner::normalized());
@@ -175,10 +209,10 @@ struct Complexity {
         if constexpr (std::is_same_v<InnerNormalized, EmptyComplexity>) {
             return Complexity<Outer, InnerNormalized>{};
         } else {
-            static_assert(ConstantUnitsMatch<typename Outer::Constant, typename InnerNormalized::Outer::Constant>);
+            static_assert(CanAddConstants<typename Outer::C, typename InnerNormalized::Outer::C>);
 
             if constexpr (std::is_same_v<typename Outer::Product, typename InnerNormalized::Outer::Product>) {
-                using NewConstant = AddConstants<typename Outer::Constant, typename InnerNormalized::Outer::Constant>;
+                using NewConstant = AddConstants<typename Outer::C, typename InnerNormalized::Outer::C>;
                 using NewConstProduct = ConstProductTerm<NewConstant, typename Outer::Product>;
                 return Complexity<NewConstProduct, typename InnerNormalized::Inner>{};
             } else if constexpr (typehint::string_compare(Outer::Product::typehint_type(),
