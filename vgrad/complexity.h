@@ -45,7 +45,7 @@ struct Constant {
 
     static constexpr auto typehint_type() {
         if constexpr (is_zero) {
-            return "zero";
+            return "0";
         } else {
             return typehint::to_string(value) + std::string{unit.value};
         }
@@ -73,8 +73,10 @@ constexpr auto add_constants(Const1, Const2) {
 template <IsConstant Const1, IsConstant Const2>
 using AddConstants = decltype(add_constants(Const1{}, Const2{}));
 
-static constexpr auto product_typehint_(const std::string a, const std::string b) {
-    if (typehint::string_compare(a, "1") == 0) {
+static constexpr std::string product_typehint_(const std::string a, const std::string b) {
+    if (typehint::string_compare(a, "0") == 0 || typehint::string_compare(b, "0") == 0) {
+        return "0";
+    } else if (typehint::string_compare(a, "1") == 0) {
         return b;
     } else if (typehint::string_compare(b, "1") == 0) {
         return a;
@@ -83,7 +85,7 @@ static constexpr auto product_typehint_(const std::string a, const std::string b
     }
 }
 
-static constexpr auto sum_typehint_(const std::string a, const std::string b) {
+static constexpr std::string sum_typehint_(const std::string a, const std::string b) {
     if (typehint::string_compare(a, "0") == 0) {
         return b;
     } else if (typehint::string_compare(b, "0") == 0) {
@@ -92,6 +94,15 @@ static constexpr auto sum_typehint_(const std::string a, const std::string b) {
         return a + " + " + b;
     }
 }
+
+struct ZeroPolyTerm {
+    TYPEHINT_PASSTHROUGH_CALL
+    static constexpr bool is_poly_term = true;
+
+    static constexpr ConstantValue total = 0;
+
+    static constexpr auto typehint_type() { return "0"; }
+};
 
 template <IsDimension _Dim, int _power>
     requires(_power >= 0)
@@ -144,6 +155,8 @@ struct ProductTerm {
     static constexpr auto normalized() {
         if constexpr (std::is_same_v<Inner, EmptyProductTerm>) {
             return ProductTerm<Outer>{};
+        } else if constexpr (Outer::total == 0) {
+            return ProductTerm<ZeroPolyTerm>{};
         } else {
             using InnerNormalized = decltype(Inner::normalized());
 

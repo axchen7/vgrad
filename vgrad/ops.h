@@ -20,7 +20,7 @@ template <IsShape NewShape, IsTensor A>
     requires(A::Shape::flat_size == NewShape::flat_size)
 auto reshape(const A& a) {
     PROFILE_SCOPE("reshape");
-    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType, cx::EmptyProductTerm>;
+    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType, cx::ProductTerm<cx::ZeroPolyTerm>>;
 
     return Tensor<NewShape, typename A::DType, Node>{
         a.get_data(),
