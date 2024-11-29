@@ -1,10 +1,10 @@
-#ifndef VGRAD_RTIME_H_
-#define VGRAD_RTIME_H_
+#ifndef VGRAD_COMPLEXITY_H_
+#define VGRAD_COMPLEXITY_H_
 
 #include "shape.h"
 #include "typehint.h"
 
-namespace vgrad::rtime {
+namespace vgrad::cx {  // cx -> complexity
 
 using ConstantValue = long long;
 
@@ -29,8 +29,8 @@ concept IsConstProductTerm = requires {
 };
 
 template <typename T>
-concept IsRunningTime = requires {
-    { T::is_running_time } -> std::same_as<const bool&>;
+concept IsComplexity = requires {
+    { T::is_complexity } -> std::same_as<const bool&>;
 };
 
 template <ConstantValue Value, typehint::StringLiteral Unit>
@@ -64,11 +64,19 @@ struct PolyTerm {
     using Dim = _Dim;
     static constexpr Size power = _power;
 
-    static constexpr auto typehint_type() { return Dim::typehint_type() + "^" + typehint::to_string(power); }
+    static constexpr auto typehint_type() {
+        if constexpr (power == 1) {
+            return Dim::typehint_type();
+        } else {
+            return Dim::typehint_type() + "^" + typehint::to_string(power);
+        }
+    }
 };
 
 struct EmptyProductTerm {
     static constexpr bool is_product_term = true;
+
+    static constexpr std::string typehint_type() { return "0"; }
 };
 
 template <IsPolyTerm _Outer, IsProductTerm _Inner = EmptyProductTerm>
@@ -122,41 +130,43 @@ struct ConstProductTerm {
     static constexpr auto typehint_type() { return Constant::typehint_type() + " x " + Product::typehint_type(); }
 };
 
-struct EmptyRunningTime {
-    static constexpr bool is_running_time = true;
+struct EmptyComplexity {
+    static constexpr bool is_complexity = true;
+
+    static constexpr auto normalized() { return EmptyComplexity{}; }
 };
 
 // sum of products
-template <IsConstProductTerm _Outer, IsRunningTime _Inner>
-struct RunningTime {
-    static constexpr bool is_running_time = true;
+template <IsConstProductTerm _Outer, IsComplexity _Inner>
+struct Complexity {
+    static constexpr bool is_complexity = true;
 
     using Outer = _Outer;
     using Inner = _Inner;
 
     // de-dupe and sort
     static constexpr auto normalized() {
-        if constexpr (std::is_same_v<Inner, EmptyRunningTime>) {
-            return RunningTime<Outer, Inner>{};
-        } else {
-            using InnerNormalized = decltype(Inner::normalized());
+        using InnerNormalized = decltype(Inner::normalized());
 
+        if constexpr (std::is_same_v<InnerNormalized, EmptyComplexity>) {
+            return Complexity<Outer, InnerNormalized>{};
+        } else {
             if constexpr (std::is_same_v<typename Outer::Product, typename InnerNormalized::Outer::Product>) {
                 using NewConstant = AddConstants<typename Outer::Constant, typename InnerNormalized::Outer::Constant>;
                 using NewConstProduct = ConstProductTerm<NewConstant, typename Outer::Product>;
-                return RunningTime<NewConstProduct, typename InnerNormalized::Inner>{};
+                return Complexity<NewConstProduct, typename InnerNormalized::Inner>{};
             } else if constexpr (typehint::string_compare(Outer::Product::typehint_type(),
                                                           InnerNormalized::Outer::Product::typehint_type()) > 0) {
-                return RunningTime<typename InnerNormalized::Outer,
-                                   decltype(RunningTime<Outer, typename InnerNormalized::Inner>::normalized())>{};
+                return Complexity<typename InnerNormalized::Outer,
+                                  decltype(Complexity<Outer, typename InnerNormalized::Inner>::normalized())>{};
             } else {
-                return RunningTime<Outer, InnerNormalized>{};
+                return Complexity<Outer, InnerNormalized>{};
             }
         }
     }
 
     static constexpr auto sorted_typehint_type_() {
-        if constexpr (std::is_same_v<Inner, EmptyRunningTime>) {
+        if constexpr (std::is_same_v<Inner, EmptyComplexity>) {
             return Outer::typehint_type();
         } else {
             return Outer::typehint_type() + " + " + Inner::sorted_typehint_type_();
@@ -192,29 +202,29 @@ constexpr auto product_term_from_shape(S shape) {
 template <IsShape S>
 using ProductTermFromShape = decltype(product_term_from_shape(S{}));
 
-constexpr auto make_running_time() { return EmptyRunningTime{}; }
+constexpr auto make_complexity() { return EmptyComplexity{}; }
 
 template <IsConstProductTerm Outer, IsConstProductTerm... Rest>
-constexpr auto make_running_time(Outer outer, Rest... rest) {
-    return RunningTime<Outer, decltype(make_running_time(rest...))>{};
+constexpr auto make_complexity(Outer outer, Rest... rest) {
+    return Complexity<Outer, decltype(make_complexity(rest...))>{};
 }
 
 template <IsConstProductTerm Outer, IsConstProductTerm... Rest>
-using MakeRunningTime = decltype(make_running_time(Outer{}, Rest{}...));
+using MakeComplexity = decltype(make_complexity(Outer{}, Rest{}...));
 
-template <IsRunningTime RTime1, IsRunningTime RTime2>
-constexpr auto add_running_times(RTime1, RTime2) {
-    if constexpr (std::is_same_v<RTime1, EmptyRunningTime>) {
-        return RTime2{};
+template <IsComplexity Cx1, IsComplexity Cx2>
+constexpr auto add_complexities(Cx1, Cx2) {
+    if constexpr (std::is_same_v<Cx1, EmptyComplexity>) {
+        return Cx2{};
     } else {
-        constexpr auto new_inner = add_running_times(typename RTime1::Inner{}, RTime2{});
-        return RunningTime<typename RTime1::Outer, decltype(new_inner)>{};
+        constexpr auto new_inner = add_complexities(typename Cx1::Inner{}, Cx2{});
+        return Complexity<typename Cx1::Outer, decltype(new_inner)>{};
     }
 }
 
-template <IsRunningTime RTime1, IsRunningTime RTime2>
-using AddRunningTimes = decltype(add_running_times(RTime1{}, RTime2{}));
+template <IsComplexity Cx1, IsComplexity Cx2>
+using AddComplexities = decltype(add_complexities(Cx1{}, Cx2{}));
 
-}  // namespace vgrad::rtime
+}  // namespace vgrad::cx
 
-#endif  // VGRAD_RTIME_H_
+#endif  // VGRAD_COMPLEXITY_H_
