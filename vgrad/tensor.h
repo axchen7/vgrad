@@ -111,12 +111,15 @@ class Tensor {
 
     auto& bind_profile(profile::ProfileNode& profile_node) const {
         profile_node.add_hook([](profile::ProfileHookDuration duration, std::ostream& os) {
-            auto per_op_duration = duration / time_complexity.total.value;
-            os << per_op_duration << " / " << time_complexity.total.unit;
+            double duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count();
+            double per_op_duration_ns = duration_ns / time_complexity.total.value;
+            os << per_op_duration_ns << "ns" << " / " << time_complexity.total.unit;
         });
         profile_node.add_hook([](profile::ProfileHookDuration duration, std::ostream& os) {
             os << time_complexity.total.typehint_type() << " total";
         });
+        profile_node.add_hook(
+            [](profile::ProfileHookDuration duration, std::ostream& os) { os << "shape: " << Shape::typehint_type(); });
         return *this;
     }
 
