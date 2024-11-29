@@ -44,9 +44,9 @@ constexpr auto to_string_literal(const std::string str) {
 }
 
 // taken from: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p3438r0.pdf
-constexpr std::string to_string(int v) {
+constexpr std::string to_string(long long v) {
     // +1 for \0, +1 for minus sign
-    constexpr size_t bufsize = std::numeric_limits<int>::digits10 + 2;
+    constexpr size_t bufsize = std::numeric_limits<long long>::digits10 + 2;
     char buf[bufsize];
     const auto res = std::to_chars(buf, buf + bufsize, v);
     return std::string(buf, res.ptr);
