@@ -186,6 +186,7 @@ struct EmptyComplexity {
     static constexpr bool is_complexity = true;
 
     using TotalValue = Constant<0, "">;
+    static constexpr TotalValue total_value{};
 
     static constexpr auto normalized() { return EmptyComplexity{}; }
 
@@ -201,6 +202,7 @@ struct Complexity {
     using Inner = _Inner;
 
     using TotalValue = AddConstants<typename Outer::TotalValue, typename Inner::TotalValue>;
+    static constexpr TotalValue total_value{};
 
     // de-dupe and sort
     static constexpr auto normalized() {
