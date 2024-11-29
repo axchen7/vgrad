@@ -75,5 +75,12 @@ int main() {
 
         std::cout << "Epoch: " << epoch << "\ttrain loss: " << train_loss.value()
                   << "\ttest loss: " << test_loss.value() << "\ttest acc: " << test_acc << std::endl;
+
+        auto train_mem = train_loss.mem_complexity;                  // 🔍 [4 B + 8 B x 10 + 72 B x 10 x 10000[...]]
+        auto test_mem = test_loss.mem_complexity;                    // 🔍 [4 B + 8 B x 10 + 16 B x 10 x 16 + [...]]
+        auto total_mem = cx::add_complexities(train_mem, test_mem);  // 🔍 [8 B + 16 B x 10 + 72 B x 10 x 1000[...]]
+
+        auto bound = cx::Constant<2'000'000'000, "B">{};
+        cx::check_upper_bound(total_mem, bound);  // 🔍 [ERROR: 5413660952 B > 2000000000 B]
     }
 }
