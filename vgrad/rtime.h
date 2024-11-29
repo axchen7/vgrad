@@ -198,6 +198,19 @@ constexpr auto make_running_time(Outer outer, Rest... rest) {
 template <IsConstProductTerm Outer, IsConstProductTerm... Rest>
 using MakeRunningTime = decltype(make_running_time(Outer{}, Rest{}...));
 
+template <IsRunningTime RTime1, IsRunningTime RTime2>
+constexpr auto add_running_times(RTime1, RTime2) {
+    if constexpr (std::is_same_v<RTime1, EmptyRunningTime>) {
+        return RTime2{};
+    } else {
+        constexpr auto new_inner = add_running_times(typename RTime1::Inner{}, RTime2{});
+        return RunningTime<typename RTime1::Outer, decltype(new_inner)>{};
+    }
+}
+
+template <IsRunningTime RTime1, IsRunningTime RTime2>
+using AddRunningTimes = decltype(add_running_times(RTime1{}, RTime2{}));
+
 }  // namespace vgrad::rtime
 
 #endif  // VGRAD_RTIME_H_
