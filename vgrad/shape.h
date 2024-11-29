@@ -1,6 +1,8 @@
 #ifndef VGRAD_SHAPE_H_
 #define VGRAD_SHAPE_H_
 
+#include <array>
+
 #include "typehint.h"
 #include "types.h"
 
