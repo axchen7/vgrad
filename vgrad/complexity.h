@@ -59,7 +59,7 @@ concept CanAddConstants =
 
 template <IsConstant Const1, IsConstant Const2>
     requires(CanAddConstants<Const1, Const2>)
-constexpr auto add_const_terms(Const1, Const2) {
+constexpr auto add_constants(Const1, Const2) {
     if constexpr (Const1::is_zero) {
         return Const2{};
     } else if constexpr (Const2::is_zero) {
@@ -70,7 +70,7 @@ constexpr auto add_const_terms(Const1, Const2) {
 }
 
 template <IsConstant Const1, IsConstant Const2>
-using AddConstants = decltype(add_const_terms(Const1{}, Const2{}));
+using AddConstants = decltype(add_constants(Const1{}, Const2{}));
 
 static constexpr auto product_typehint_(const std::string a, const std::string b) {
     if (typehint::string_compare(a, "1") == 0) {
