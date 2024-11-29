@@ -33,11 +33,8 @@ concept IsValidIndex =
     ((I >= 0 && I < static_cast<Index>(A::rank)) ||
      ((I + static_cast<Index>(A::rank)) >= 0 && (I + static_cast<Index>(A::rank)) < static_cast<Index>(A::rank)));
 
-template <typename Outer, typename Inner>
-struct Shape {};
-
 template <IsDimension Outer, IsShape Inner>
-struct Shape<Outer, Inner> {
+struct Shape {
    public:
     static constexpr bool is_shape = true;
 
