@@ -17,7 +17,7 @@
 
 // to get typehint via () without assigning to a variable
 #define TYPEHINT_PASSTHROUGH_CALL \
-    constexpr auto operator()() const { return *this; }
+    constexpr auto& operator()() const { return *this; }
 
 template <typename _T>
 struct TYPEHINT_TYPE_PASSTHROUGH {
