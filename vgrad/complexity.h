@@ -213,7 +213,8 @@ struct Complexity {
         } else {
             static_assert(CanAddConstants<typename Outer::C, typename InnerNormalized::Outer::C>);
 
-            if constexpr (std::is_same_v<typename Outer::Product, typename InnerNormalized::Outer::Product>) {
+            if constexpr (typehint::string_compare(Outer::Product::typehint_type(),
+                                                   InnerNormalized::Outer::Product::typehint_type()) == 0) {
                 using NewConstant = AddConstants<typename Outer::C, typename InnerNormalized::Outer::C>;
                 using NewConstProduct = ConstProductTerm<NewConstant, typename Outer::Product>;
                 return Complexity<NewConstProduct, typename InnerNormalized::Inner>{};
