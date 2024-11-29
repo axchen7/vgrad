@@ -30,7 +30,7 @@ constexpr std::string dtype_to_string() {
 #endif
 
 template <Number DType>
-using MemoryConstant = cx::Constant<sizeof(DType), "b">;
+using MemoryConstant = cx::Constant<sizeof(DType), "B">;
 
 template <IsShape _OutShape, Number _DType>
 struct LeafNode {
