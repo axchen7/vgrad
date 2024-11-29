@@ -6,16 +6,11 @@
 
 namespace vgrad::rtime {
 
-using ConstantType = long long;
+using ConstantValue = long long;
 
 template <typename T>
 concept IsConstTerm = requires {
     { T::is_const_term } -> std::same_as<const bool&>;
-};
-
-template <typename T>
-concept IsUnknownConstTerm = requires {
-    { T::is_unkown_const_term } -> std::same_as<const bool&>;
 };
 
 template <typename T>
@@ -38,29 +33,25 @@ concept IsRunningTime = requires {
     { T::is_running_time } -> std::same_as<const bool&>;
 };
 
-template <ConstantType _ns_constant>
+template <ConstantValue Value, typehint::StringLiteral Unit>
 struct ConstTerm {
     static constexpr bool is_const_term = true;
 
-    static constexpr ConstantType ns_constant = _ns_constant;
+    static constexpr ConstantValue value = Value;
+    static constexpr typehint::StringLiteral unit = Unit;
 
-    static constexpr auto typehint_type() { return typehint::to_string(ns_constant) + "ns"; }
+    static constexpr auto typehint_type() { return typehint::to_string(value) + " " + std::string{unit.value}; }
 };
 
-struct UnknownConstTerm {
-    static constexpr bool is_const_term = true;
-    static constexpr bool is_unkown_const_term = true;
-
-    static constexpr std::string typehint_type() { return "?"; }
-};
+template <typename Const1, typename Const2>
+concept ConstTermUnitsMatch =
+    IsConstTerm<Const1> && IsConstTerm<Const2> &&
+    typehint::string_compare(std::string(Const1::unit.value), std::string(Const2::unit.value)) == 0;
 
 template <IsConstTerm Const1, IsConstTerm Const2>
+    requires(ConstTermUnitsMatch<Const1, Const2>)
 constexpr auto add_const_terms(Const1, Const2) {
-    if constexpr (IsUnknownConstTerm<Const1> || IsUnknownConstTerm<Const2>) {
-        return UnknownConstTerm{};
-    } else {
-        return ConstTerm<Const1::ns_constant + Const2::ns_constant>{};
-    }
+    return ConstTerm<Const1::value + Const2::value, Const1::unit>{};
 }
 
 template <IsConstTerm Const1, IsConstTerm Const2>
