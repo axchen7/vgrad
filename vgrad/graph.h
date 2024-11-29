@@ -25,6 +25,9 @@ struct UnaryOpNode {
 
     using ThisMemoryComplexity = cx::MakeComplexity<cx::ConstProductTerm<MemoryConstant<DType>, Cx>>;
     using TotalMemoryComplexity = cx::AddComplexities<ThisMemoryComplexity, typename InNode::TotalMemoryComplexity>;
+
+    using ThisTimeComplexity = cx::MakeComplexity<cx::ConstProductTerm<TimeConstant, Cx>>;
+    using TotalTimeComplexity = cx::AddComplexities<ThisTimeComplexity, typename InNode::TotalTimeComplexity>;
 };
 
 template <IsNode InNode1, IsNode InNode2, IsShape _OutShape, Number _DType, cx::IsProductTerm Cx>
@@ -50,6 +53,11 @@ struct BinaryOpNode {
     using TotalMemoryComplexity =
         cx::AddComplexities<ThisMemoryComplexity, cx::AddComplexities<typename InNode1::TotalMemoryComplexity,
                                                                       typename InNode2::TotalMemoryComplexity>>;
+
+    using ThisTimeComplexity = cx::MakeComplexity<cx::ConstProductTerm<TimeConstant, Cx>>;
+    using TotalTimeComplexity =
+        cx::AddComplexities<ThisTimeComplexity, cx::AddComplexities<typename InNode1::TotalTimeComplexity,
+                                                                    typename InNode2::TotalTimeComplexity>>;
 };
 
 }  // namespace vgrad

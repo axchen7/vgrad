@@ -32,6 +32,8 @@ constexpr std::string dtype_to_string() {
 template <Number DType>
 using MemoryConstant = cx::Constant<sizeof(DType), "B">;
 
+using TimeConstant = cx::Constant<1, "ops">;
+
 template <IsShape _OutShape, Number _DType>
 struct LeafNode {
     static constexpr bool is_node = true;
@@ -40,6 +42,7 @@ struct LeafNode {
 
     using Cx = cx::ProductTermFromShape<OutShape>;
     using TotalMemoryComplexity = cx::MakeComplexity<cx::ConstProductTerm<MemoryConstant<DType>, Cx>>;
+    using TotalTimeComplexity = cx::MakeComplexity<cx::ConstProductTerm<TimeConstant, Cx>>;
 };
 
 template <IsShape _Shape, Number _DType, IsNode _Node = LeafNode<_Shape, _DType>>
@@ -54,6 +57,7 @@ class Tensor {
     using Detached = Tensor<Shape, DType>;
 
     static constexpr auto mem_complexity = typename Node::TotalMemoryComplexity{};
+    static constexpr auto time_complexity = typename Node::TotalTimeComplexity{};
 
     // data is initialized to zeros
     Tensor(Node&& node = Node{}) : data_{std::make_shared<FlatData>()}, node_{std::make_shared<Node>(node)} {}
