@@ -29,13 +29,17 @@ constexpr std::string dtype_to_string() {
 }
 #endif
 
+template <Number DType>
+using MemoryConstant = cx::Constant<sizeof(DType), "b">;
+
 template <IsShape _OutShape, Number _DType>
 struct LeafNode {
     static constexpr bool is_node = true;
     using DType = _DType;
     using OutShape = _OutShape;
 
-    using TotalMemoryComplexity = cx::EmptyComplexity;
+    using Cx = cx::ProductTermFromShape<OutShape>;
+    using TotalMemoryComplexity = cx::MakeComplexity<cx::ConstProductTerm<MemoryConstant<DType>, Cx>>;
 };
 
 template <IsShape _Shape, Number _DType, IsNode _Node = LeafNode<_Shape, _DType>>
