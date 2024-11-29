@@ -57,12 +57,13 @@ def main():
                     expr = f"({expr})"
 
                 line_v2 = f'{before_eq}= {print_fn}("{id_str}", {expr});\n'
-                version2_lines.append(line_v2)
             else:
+                print_fn = typehint_print_val_type
                 expr = before_comment.strip().rstrip(";")
                 expr = f"({expr})"
                 line_v2 = f'{print_fn}("{id_str}", {expr});\n'
-                version2_lines.append(line_v2)
+
+            version2_lines.append(line_v2)
         else:
             version1_lines.append(line)
             version2_lines.append(line)
