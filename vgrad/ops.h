@@ -20,7 +20,7 @@ template <IsShape NewShape, IsTensor A>
     requires(A::Shape::flat_size == NewShape::flat_size)
 auto reshape(const A& a) {
     PROFILE_SCOPE("reshape");
-    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
+    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType, cx::EmptyProductTerm>;
 
     return Tensor<NewShape, typename A::DType, Node>{
         a.get_data(),
@@ -50,7 +50,8 @@ auto broadcast(const B& b) {
 template <IsTensor A>
 auto _unary_op(const A& a, auto forward, auto backward) {
     PROFILE_SCOPE("_unary_op");
-    using Node = UnaryOpNode<typename A::Node, typename A::Shape, typename A::DType>;
+    using Node = UnaryOpNode<typename A::Node, typename A::Shape, typename A::DType,
+                             cx::ProductTermFromShape<typename A::Shape>>;
 
     Tensor<typename A::Shape, typename A::DType, Node> result{Node{
         a.get_node(),
@@ -79,7 +80,8 @@ auto _unary_op(const A& a, auto forward, auto backward) {
 template <IsTensor A, IsTensor B>
 auto _binary_op_same_shape(const A& a, const B& b, auto forward, auto backward_a, auto backward_b) {
     PROFILE_SCOPE("_binary_op_same_shape");
-    using Node = BinaryOpNode<typename A::Node, typename B::Node, typename A::Shape, typename A::DType>;
+    using Node = BinaryOpNode<typename A::Node, typename B::Node, typename A::Shape, typename A::DType,
+                              cx::ProductTermFromShape<typename A::Shape>>;
 
     Tensor<typename A::Shape, typename A::DType, Node> result{Node{
         a.get_node(),
@@ -151,7 +153,8 @@ auto transpose(const A& a) {
     auto raw_result = _transpose_no_grad<I1, I2>(a);
 
     using NewShape = typename decltype(raw_result)::Shape;
-    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
+    using Node =
+        UnaryOpNode<typename A::Node, NewShape, typename A::DType, cx::ProductTermFromShape<typename A::Shape>>;
 
     return Tensor<NewShape, typename A::DType, Node>{
         raw_result.get_data(),
@@ -186,7 +189,8 @@ auto _reduce_last(const A& a, auto forward, auto backward) {
     PROFILE_SCOPE("_reduce_last");
     using LastDim = typename A::Shape::template At<-1>;
     using NewShape = typename A::Shape::template Remove<-1>;
-    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
+    using Node =
+        UnaryOpNode<typename A::Node, NewShape, typename A::DType, cx::ProductTermFromShape<typename A::Shape>>;
 
     Tensor<NewShape, typename A::DType, Node> result{Node{
         a.get_node(),
@@ -244,7 +248,7 @@ auto repeat(const A& a) {
     constexpr auto idx = A::Shape::template normalize_index<I>();
 
     using NewShape = typename A::Shape::template Remove<I>::template Insert<idx, Dim>;
-    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType>;
+    using Node = UnaryOpNode<typename A::Node, NewShape, typename A::DType, cx::ProductTermFromShape<NewShape>>;
 
     Tensor<NewShape, typename A::DType, Node> result{Node{
         a.get_node(),

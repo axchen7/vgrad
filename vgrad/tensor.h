@@ -6,6 +6,7 @@
 #include <iostream>
 #include <memory>
 
+#include "complexity.h"
 #include "profile.h"
 #include "shape.h"
 
@@ -33,6 +34,8 @@ struct LeafNode {
     static constexpr bool is_node = true;
     using DType = _DType;
     using OutShape = _OutShape;
+
+    using TotalMemoryComplexity = cx::EmptyComplexity;
 };
 
 template <IsShape _Shape, Number _DType, IsNode _Node = LeafNode<_Shape, _DType>>

@@ -7,7 +7,10 @@
 
 namespace vgrad {
 
-template <IsNode InNode, IsShape _OutShape, Number _DType>
+template <Number DType>
+using MemoryConstant = cx::Constant<sizeof(DType), "bytes">;
+
+template <IsNode InNode, IsShape _OutShape, Number _DType, cx::IsProductTerm Cx>
     requires std::is_same_v<typename InNode::DType, _DType>
 struct UnaryOpNode {
     static constexpr bool is_node = true;
@@ -22,9 +25,12 @@ struct UnaryOpNode {
 
     const std::shared_ptr<InNode> in_node;
     const GradFn grad_fn;
+
+    using ThisMemoryComplexity = cx::MakeComplexity<cx::ConstProductTerm<MemoryConstant<DType>, Cx>>;
+    using TotalMemoryComplexity = cx::AddComplexities<ThisMemoryComplexity, typename InNode::TotalMemoryComplexity>;
 };
 
-template <IsNode InNode1, IsNode InNode2, IsShape _OutShape, Number _DType>
+template <IsNode InNode1, IsNode InNode2, IsShape _OutShape, Number _DType, cx::IsProductTerm Cx>
     requires std::is_same_v<typename InNode1::DType, _DType> && std::is_same_v<typename InNode2::DType, _DType>
 struct BinaryOpNode {
     static constexpr bool is_node = true;
@@ -42,6 +48,11 @@ struct BinaryOpNode {
     const std::shared_ptr<InNode1> in_node1;
     const std::shared_ptr<InNode2> in_node2;
     const GradFn grad_fn;
+
+    using ThisMemoryComplexity = cx::MakeComplexity<cx::ConstProductTerm<MemoryConstant<DType>, Cx>>;
+    using TotalMemoryComplexity =
+        cx::AddComplexities<ThisMemoryComplexity, cx::AddComplexities<typename InNode1::TotalMemoryComplexity,
+                                                                      typename InNode2::TotalMemoryComplexity>>;
 };
 
 }  // namespace vgrad
