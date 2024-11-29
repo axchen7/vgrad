@@ -48,6 +48,13 @@ constexpr std::string to_string(int v) {
     return std::string(buf, res.ptr);
 }
 
+// -1, 0, 1 for less, equal, greater
+constexpr int string_compare(const std::string a, const std::string b) {
+    if (a < b) return -1;
+    if (a > b) return 1;
+    return 0;
+}
+
 // inspired by: https://stackoverflow.com/a/58834326
 template <StringLiteral Label, StringLiteral str>
 constexpr void static_print() {
