@@ -8,7 +8,7 @@
 namespace vgrad {
 
 template <Number DType>
-using MemoryConstant = cx::Constant<sizeof(DType), "bytes">;
+using MemoryConstant = cx::Constant<sizeof(DType), "b">;
 
 template <IsNode InNode, IsShape _OutShape, Number _DType, cx::IsProductTerm Cx>
     requires std::is_same_v<typename InNode::DType, _DType>
