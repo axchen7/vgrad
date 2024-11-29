@@ -9,7 +9,7 @@ namespace vgrad::rtime {
 using ConstantValue = long long;
 
 template <typename T>
-concept IsConstTerm = requires {
+concept IsConstant = requires {
     { T::is_const_term } -> std::same_as<const bool&>;
 };
 
@@ -34,7 +34,7 @@ concept IsRunningTime = requires {
 };
 
 template <ConstantValue Value, typehint::StringLiteral Unit>
-struct ConstTerm {
+struct Constant {
     static constexpr bool is_const_term = true;
 
     static constexpr ConstantValue value = Value;
@@ -44,18 +44,18 @@ struct ConstTerm {
 };
 
 template <typename Const1, typename Const2>
-concept ConstTermUnitsMatch =
-    IsConstTerm<Const1> && IsConstTerm<Const2> &&
+concept ConstantUnitsMatch =
+    IsConstant<Const1> && IsConstant<Const2> &&
     typehint::string_compare(std::string(Const1::unit.value), std::string(Const2::unit.value)) == 0;
 
-template <IsConstTerm Const1, IsConstTerm Const2>
-    requires(ConstTermUnitsMatch<Const1, Const2>)
+template <IsConstant Const1, IsConstant Const2>
+    requires(ConstantUnitsMatch<Const1, Const2>)
 constexpr auto add_const_terms(Const1, Const2) {
-    return ConstTerm<Const1::value + Const2::value, Const1::unit>{};
+    return Constant<Const1::value + Const2::value, Const1::unit>{};
 }
 
-template <IsConstTerm Const1, IsConstTerm Const2>
-using AddConstTerms = decltype(add_const_terms(Const1{}, Const2{}));
+template <IsConstant Const1, IsConstant Const2>
+using AddConstants = decltype(add_const_terms(Const1{}, Const2{}));
 
 template <IsDimension _Dim, int _power>
 struct PolyTerm {
@@ -112,7 +112,7 @@ struct ProductTerm {
     }
 };
 
-template <IsConstTerm _Constant, IsProductTerm _Product>
+template <IsConstant _Constant, IsProductTerm _Product>
 struct ConstProductTerm {
     static constexpr bool is_const_product_term = true;
 
@@ -142,7 +142,7 @@ struct RunningTime {
             using InnerNormalized = decltype(Inner::normalized());
 
             if constexpr (std::is_same_v<typename Outer::Product, typename InnerNormalized::Outer::Product>) {
-                using NewConstant = AddConstTerms<typename Outer::Constant, typename InnerNormalized::Outer::Constant>;
+                using NewConstant = AddConstants<typename Outer::Constant, typename InnerNormalized::Outer::Constant>;
                 using NewConstProduct = ConstProductTerm<NewConstant, typename Outer::Product>;
                 return RunningTime<NewConstProduct, typename InnerNormalized::Inner>{};
             } else if constexpr (typehint::string_compare(Outer::Product::typehint_type(),
