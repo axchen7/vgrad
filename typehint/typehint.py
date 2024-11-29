@@ -58,7 +58,9 @@ def main():
                 line_v2 = f'{before_eq}= {print_fn}("{id_str}", {expr});\n'
                 version2_lines.append(line_v2)
             else:
-                version2_lines.append(line)
+                expr = before_comment.strip().rstrip(";")
+                line_v2 = f'{print_fn}("{id_str}", {expr});\n'
+                version2_lines.append(line_v2)
         else:
             version1_lines.append(line)
             version2_lines.append(line)

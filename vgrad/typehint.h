@@ -15,6 +15,10 @@
     Type;                                      \
     typehint::static_print<label, typehint::to_string_literal<Type::typehint_type().size()>(Type::typehint_type())>()
 
+// to get typehint via () without assigning to a variable
+#define TYPEHINT_PASSTHROUGH_CALL \
+    constexpr auto operator()() const { return *this; }
+
 template <typename _T>
 struct TYPEHINT_TYPE_PASSTHROUGH {
     using T = _T;

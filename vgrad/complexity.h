@@ -35,6 +35,7 @@ concept IsComplexity = requires {
 
 template <ConstantValue Value, typehint::StringLiteral Unit>
 struct Constant {
+    TYPEHINT_PASSTHROUGH_CALL
     static constexpr bool is_const_term = true;
 
     static constexpr ConstantValue value = Value;
@@ -95,6 +96,7 @@ static constexpr auto sum_typehint_(const std::string a, const std::string b) {
 template <IsDimension _Dim, int _power>
     requires(_power >= 0)
 struct PolyTerm {
+    TYPEHINT_PASSTHROUGH_CALL
     static constexpr bool is_poly_term = true;
 
     using Dim = _Dim;
@@ -120,6 +122,7 @@ struct PolyTerm {
 };
 
 struct EmptyProductTerm {
+    TYPEHINT_PASSTHROUGH_CALL
     static constexpr bool is_product_term = true;
 
     static constexpr ConstantValue total = 1;
@@ -129,6 +132,7 @@ struct EmptyProductTerm {
 
 template <IsPolyTerm _Outer, IsProductTerm _Inner = EmptyProductTerm>
 struct ProductTerm {
+    TYPEHINT_PASSTHROUGH_CALL
     static constexpr bool is_product_term = true;
 
     using Outer = _Outer;
@@ -172,6 +176,7 @@ struct ProductTerm {
 
 template <IsConstant _C, IsProductTerm _Product>
 struct ConstProductTerm {
+    TYPEHINT_PASSTHROUGH_CALL
     static constexpr bool is_const_product_term = true;
 
     using C = _C;
@@ -183,6 +188,7 @@ struct ConstProductTerm {
 };
 
 struct EmptyComplexity {
+    TYPEHINT_PASSTHROUGH_CALL
     static constexpr bool is_complexity = true;
 
     using Total = Constant<0, "">;
@@ -196,6 +202,7 @@ struct EmptyComplexity {
 // sum of products
 template <IsConstProductTerm _Outer, IsComplexity _Inner>
 struct Complexity {
+    TYPEHINT_PASSTHROUGH_CALL
     static constexpr bool is_complexity = true;
 
     using Outer = _Outer;
