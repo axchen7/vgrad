@@ -188,6 +188,19 @@ constexpr auto make_product_term(Outer outer, Rest... rest) {
 template <IsPolyTerm Outer, IsPolyTerm... Rest>
 using MakeProductTerm = decltype(make_product_term(Outer{}, Rest{}...));
 
+template <IsShape S>
+constexpr auto product_term_from_shape(S shape) {
+    if constexpr (std::is_same_v<S, ScalarShape>) {
+        return EmptyProductTerm{};
+    } else {
+        constexpr auto outer = PolyTerm<decltype(shape.outer), 1>{};
+        return ProductTerm<decltype(outer), decltype(product_term_from_shape(shape.inner))>{};
+    }
+}
+
+template <IsShape S>
+using ProductTermFromShape = decltype(product_term_from_shape(S{}));
+
 constexpr auto make_running_time() { return EmptyRunningTime{}; }
 
 template <IsConstProductTerm Outer, IsConstProductTerm... Rest>
