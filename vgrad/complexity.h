@@ -76,7 +76,7 @@ struct PolyTerm {
 struct EmptyProductTerm {
     static constexpr bool is_product_term = true;
 
-    static constexpr std::string typehint_type() { return "0"; }
+    static constexpr std::string typehint_type() { return "1"; }
 };
 
 template <IsPolyTerm _Outer, IsProductTerm _Inner = EmptyProductTerm>
