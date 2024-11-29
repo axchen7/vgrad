@@ -134,6 +134,8 @@ struct EmptyComplexity {
     static constexpr bool is_complexity = true;
 
     static constexpr auto normalized() { return EmptyComplexity{}; }
+
+    static constexpr auto typehint_type() { return "0"; }
 };
 
 // sum of products
