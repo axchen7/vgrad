@@ -100,7 +100,7 @@ struct PolyTerm {
     using Dim = _Dim;
     static constexpr Size power = _power;
 
-    static constexpr ConstantValue total_value_() {
+    static constexpr ConstantValue total_() {
         ConstantValue result = 1;
         for (int i = 0; i < power; i++) {
             result *= Dim::value;
@@ -108,7 +108,7 @@ struct PolyTerm {
         return result;
     }
 
-    static constexpr ConstantValue total_value = total_value_();
+    static constexpr ConstantValue total = total_();
 
     static constexpr auto typehint_type() {
         if constexpr (power == 1) {
@@ -122,7 +122,7 @@ struct PolyTerm {
 struct EmptyProductTerm {
     static constexpr bool is_product_term = true;
 
-    static constexpr ConstantValue total_value = 1;
+    static constexpr ConstantValue total = 1;
 
     static constexpr std::string typehint_type() { return "1"; }
 };
@@ -134,7 +134,7 @@ struct ProductTerm {
     using Outer = _Outer;
     using Inner = _Inner;
 
-    static constexpr ConstantValue total_value = Outer::total_value * Inner::total_value;
+    static constexpr ConstantValue total = Outer::total * Inner::total;
 
     // de-dupe and sort
     static constexpr auto normalized() {
@@ -177,7 +177,7 @@ struct ConstProductTerm {
     using C = _C;
     using Product = _Product;
 
-    using TotalValue = Constant<C::value * Product::total_value, C::unit>;
+    using Total = Constant<C::value * Product::total, C::unit>;
 
     static constexpr auto typehint_type() { return product_typehint_(C::typehint_type(), Product::typehint_type()); }
 };
@@ -185,8 +185,8 @@ struct ConstProductTerm {
 struct EmptyComplexity {
     static constexpr bool is_complexity = true;
 
-    using TotalValue = Constant<0, "">;
-    static constexpr TotalValue total_value{};
+    using Total = Constant<0, "">;
+    static constexpr Total total{};
 
     static constexpr auto normalized() { return EmptyComplexity{}; }
 
@@ -201,8 +201,8 @@ struct Complexity {
     using Outer = _Outer;
     using Inner = _Inner;
 
-    using TotalValue = AddConstants<typename Outer::TotalValue, typename Inner::TotalValue>;
-    static constexpr TotalValue total_value{};
+    using Total = AddConstants<typename Outer::Total, typename Inner::Total>;
+    static constexpr Total total{};
 
     // de-dupe and sort
     static constexpr auto normalized() {

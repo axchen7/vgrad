@@ -53,7 +53,7 @@ class Tensor {
     using NestedData = NestedArray<Shape, DType>;
     using Detached = Tensor<Shape, DType>;
 
-    static constexpr auto total_memory_complexity = typename Node::TotalMemoryComplexity{};
+    static constexpr auto mem_complexity = typename Node::TotalMemoryComplexity{};
 
     // data is initialized to zeros
     Tensor(Node&& node = Node{}) : data_{std::make_shared<FlatData>()}, node_{std::make_shared<Node>(node)} {}
