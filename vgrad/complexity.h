@@ -175,6 +175,8 @@ struct Complexity {
         if constexpr (std::is_same_v<InnerNormalized, EmptyComplexity>) {
             return Complexity<Outer, InnerNormalized>{};
         } else {
+            static_assert(ConstantUnitsMatch<typename Outer::Constant, typename InnerNormalized::Outer::Constant>);
+
             if constexpr (std::is_same_v<typename Outer::Product, typename InnerNormalized::Outer::Product>) {
                 using NewConstant = AddConstants<typename Outer::Constant, typename InnerNormalized::Outer::Constant>;
                 using NewConstProduct = ConstProductTerm<NewConstant, typename Outer::Product>;
