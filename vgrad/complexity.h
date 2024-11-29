@@ -289,6 +289,31 @@ constexpr auto add_complexities(Cx1, Cx2) {
 template <IsComplexity Cx1, IsComplexity Cx2>
 using AddComplexities = decltype(add_complexities(Cx1{}, Cx2{}));
 
+template <IsComplexity Cx, IsConstant Bound>
+    requires CanAddConstants<typename Cx::Total, Bound>
+struct UpperBoundCheck {
+    static constexpr auto typehint_type() {
+        if constexpr (Cx::Total::value <= Bound::value) {
+            return "OK: " + Cx::Total::typehint_type() + " <= " + Bound::typehint_type();
+        } else {
+            return "ERROR: " + Cx::Total::typehint_type() + " > " + Bound::typehint_type();
+        }
+    }
+};
+
+template <IsComplexity Cx, IsConstant Bound>
+    requires CanAddConstants<typename Cx::Total, Bound>
+constexpr auto assert_upper_bound(Cx cx, Bound bound) {
+    static_assert(Cx::Total::value <= Bound::value, "Complexity exceeds bound");
+    return UpperBoundCheck<Cx, Bound>{};
+}
+
+template <IsComplexity Cx, IsConstant Bound>
+    requires CanAddConstants<typename Cx::Total, Bound>
+constexpr auto check_upper_bound(Cx cx, Bound bound) {
+    return UpperBoundCheck<Cx, Bound>{};
+}
+
 }  // namespace vgrad::cx
 
 #endif  // VGRAD_COMPLEXITY_H_
