@@ -401,15 +401,59 @@ auto operator/(const A& a, const B& b) {
         [](auto x, auto y) { return -x / (y * y); });
 }
 
-template <IsTensor A, IsTensor B>
-    requires TensorBinaryOpCompatible<A, B>
-auto operator==(const A& a, const B& b) {
-    PROFILE_SCOPE("operator==");
-    // backward is never used
-    auto result = _binary_op(
-        a, b, [](auto x, auto y) { return x == y ? 1 : 0; }, [](auto x, auto y) { return 0; },
-        [](auto x, auto y) { return 0; });
-    return result.detach();
+#define DEFINE_COMPARISON_OP(opname, op)                                                           \
+    template <IsTensor A, IsTensor B>                                                              \
+        requires TensorBinaryOpCompatible<A, B>                                                    \
+    auto opname(const A& a, const B& b) {                                                          \
+        PROFILE_SCOPE(#opname);                                                                    \
+        /* backward is never used */                                                               \
+        return _binary_op(                                                                         \
+            a, b, [](auto x, auto y) { return x op y ? 1 : 0; }, [](auto x, auto y) { return 0; }, \
+            [](auto x, auto y) { return 0; });                                                     \
+    }
+
+DEFINE_COMPARISON_OP(operator==, ==)
+DEFINE_COMPARISON_OP(operator!=, !=)
+DEFINE_COMPARISON_OP(operator<, <)
+DEFINE_COMPARISON_OP(operator<=, <=)
+DEFINE_COMPARISON_OP(operator>, >)
+DEFINE_COMPARISON_OP(operator>=, >=)
+
+template <IsTensor Cond, IsTensor A, IsTensor B>
+    requires TensorDTypeCompatible<Cond, A> && TensorDTypeCompatible<Cond, B> && TensorShapeCompatible<Cond, A> &&
+             TensorShapeCompatible<Cond, B>
+auto where(const Cond& cond, const A& a, const B& b) {
+    PROFILE_SCOPE("where");
+    using Node = BinaryOpNode<typename A::Node, typename B::Node, typename A::Shape, typename A::DType,
+                              cx::ProductTermFromShape<typename A::Shape>>;
+
+    Tensor<typename A::Shape, typename A::DType, Node> result{Node{
+        a.get_node(),
+        b.get_node(),
+        [cond, a, b](const auto& dl_df) {
+            PROFILE_SCOPE("where::grad");
+            Tensor<typename A::Shape, typename A::DType> dl_da;
+            Tensor<typename B::Shape, typename B::DType> dl_db;
+
+#pragma omp parallel
+            for (Size i = 0; i < A::Shape::flat_size; i++) {
+                if (cond.flat_view()[i]) {
+                    dl_da._flat_data()[i] = dl_df.flat_view()[i];
+                } else {
+                    dl_db._flat_data()[i] = dl_df.flat_view()[i];
+                }
+            }
+
+            return std::make_pair(dl_da, dl_db);
+        },
+    }};
+
+#pragma omp parallel
+    for (Size i = 0; i < A::Shape::flat_size; i++) {
+        result._flat_data()[i] = cond.flat_view()[i] ? a.flat_view()[i] : b.flat_view()[i];
+    }
+
+    return result.bind_profile(PROFILE_NODE);
 }
 
 template <IsTensor A>
