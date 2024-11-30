@@ -73,6 +73,36 @@ class SinusoidalModel {
     Tensor<ScalarShape, DType> C = randn<DType, ScalarShape>();
 };
 
+template <Number DType>
+class DoubleNoiseModel {
+   public:
+    DoubleNoiseModel(DType initial_freq) : noise1_model{initial_freq}, noise2_model{initial_freq} {}
+
+    auto forward(const auto& x, const auto& y) const {
+        auto y_hat1 = baseline_model.forward(x) + noise1_model.forward(x);
+        auto y_hat2 = baseline_model.forward(x) + noise2_model.forward(x);
+
+        auto diff1 = pow(y_hat1 - y, 2);
+        auto diff2 = pow(y_hat2 - y, 2);
+
+        auto y_hat = where(diff1 < diff2, y_hat1, y_hat2);
+        return y_hat;
+    }
+
+    auto params() { return make_params(baseline_model, noise1_model, noise2_model); }
+
+    template <typename T>
+    friend std::ostream& operator<<(std::ostream& os, const DoubleNoiseModel<T>& model) {
+        os << "(" << model.baseline_model << ") + [" << model.noise1_model << " | " << model.noise2_model << "]";
+        return os;
+    }
+
+   private:
+    LinearModel<DType> baseline_model;
+    SinusoidalModel<DType> noise1_model;
+    SinusoidalModel<DType> noise2_model;
+};
+
 auto loss(const auto& y, const auto& y_hat) {
     PROFILE_SCOPE("loss");
     auto loss = sum(pow(y_hat - y, 2));
@@ -80,29 +110,25 @@ auto loss(const auto& y, const auto& y_hat) {
 }
 
 int main() {
-    using Dim = Dimension<100>;
+    using Dim = Dimension<1000>;
     using DType = float;
 
-    auto x = arange<DType, Dim>() / 10;
-    auto noise = randn_like(x);
+    auto x = import_vgtensor<float, MakeShape<Dim>>("../torch/readings_x.vgtensor");
+    auto y = import_vgtensor<float, MakeShape<Dim>>("../torch/readings_y.vgtensor");
 
-    // auto y = 5 * pow(x, 2) + 3 * pow(x, 1) + 2 + 0.1 * noise;
-    // auto y = sin(x);
-    auto y = 1 + 2 * x + 3 * sin(4 * x + 5);
+    DType initial_freq = 20;
 
-    LinearModel<DType> lin_model;
-    SinusoidalModel<DType> sin_model{4};
+    DoubleNoiseModel<DType> model{initial_freq};
 
     const float lr = 0.1;
     const int epochs = 2'000;
 
-    optim::Adam optimizer{lr, make_params(lin_model, sin_model)};
+    optim::Adam optimizer{lr, model.params()};
 
     for (int epoch = 0; epoch < epochs; epoch++) {
         PROFILE_SCOPE("epoch");
 
-        auto y_hat = lin_model.forward(x) + sin_model.forward(x);
-
+        auto y_hat = model.forward(x, y);
         auto l = loss(y, y_hat);
         optimizer.step(l);
 
@@ -111,5 +137,5 @@ int main() {
         }
     }
 
-    std::cout << "Model: f(x) = " << lin_model << " + " << sin_model << std::endl;
+    std::cout << "Model: f(x) = " << model << std::endl;
 }
