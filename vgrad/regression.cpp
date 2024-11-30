@@ -27,10 +27,7 @@ class ScalarModel {
 template <Number DType, int degree>
 class PolynomialModel {
    public:
-    template <IsTensor X>
-    auto forward(const X& x) const {
-        return coeff * pow(x, degree) + next.forward(x);
-    }
+    auto forward(const auto& x) const { return coeff * pow(x, degree) + next.forward(x); }
 
     auto params() { return make_params(coeff, next); }
 
