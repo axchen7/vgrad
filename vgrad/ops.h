@@ -344,6 +344,24 @@ auto sqrt(const A& a) {
 }
 
 template <IsFloatTensor A>
+auto sin(const A& a) {
+    PROFILE_SCOPE("sin");
+    return _unary_op(a, [](auto x) { return std::sin(x); }, [](auto x) { return std::cos(x); });
+}
+
+template <IsFloatTensor A>
+auto cos(const A& a) {
+    PROFILE_SCOPE("cos");
+    return _unary_op(a, [](auto x) { return std::cos(x); }, [](auto x) { return -std::sin(x); });
+}
+
+template <IsFloatTensor A>
+auto tan(const A& a) {
+    PROFILE_SCOPE("tan");
+    return _unary_op(a, [](auto x) { return std::tan(x); }, [](auto x) { return 1 / std::pow(std::cos(x), 2); });
+}
+
+template <IsFloatTensor A>
 auto relu(const A& a) {
     PROFILE_SCOPE("relu");
     return _unary_op(a, [](auto x) { return x > 0 ? x : 0; }, [](auto x) { return x > 0 ? 1 : 0; });
