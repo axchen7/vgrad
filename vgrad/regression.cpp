@@ -54,6 +54,9 @@ using LinearModel = PolynomialModel<DType, 1>;
 template <Number DType>
 class SinusoidalModel {
    public:
+    SinusoidalModel() {}
+    SinusoidalModel(DType initial_freq) : B{initial_freq} {}
+
     auto forward(const auto& x) const { return A * sin(B * x + C); }
 
     auto params() { return make_params(A, B, C); }
@@ -85,10 +88,10 @@ int main() {
 
     // auto y = 5 * pow(x, 2) + 3 * pow(x, 1) + 2 + 0.1 * noise;
     // auto y = sin(x);
-    auto y = 1 + 2 * x + 3 * sin(x + 5);
+    auto y = 1 + 2 * x + 3 * sin(4 * x + 5);
 
     LinearModel<DType> lin_model;
-    SinusoidalModel<DType> sin_model;
+    SinusoidalModel<DType> sin_model{4};
 
     const float lr = 0.1;
     const int epochs = 2'000;
