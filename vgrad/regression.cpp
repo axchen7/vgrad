@@ -70,9 +70,8 @@ class SinusoidalModel {
     Tensor<ScalarShape, DType> C = randn<DType, ScalarShape>();
 };
 
-auto loss(const auto& model, const auto& x, const auto& y) {
+auto loss(const auto& y, const auto& y_hat) {
     PROFILE_SCOPE("loss");
-    auto y_hat = model.forward(x);
     auto loss = sum(pow(y_hat - y, 2));
     return loss;
 }
@@ -85,20 +84,23 @@ int main() {
     auto noise = randn_like(x);
 
     // auto y = 5 * pow(x, 2) + 3 * pow(x, 1) + 2 + 0.1 * noise;
-    auto y = sin(x);
+    // auto y = sin(x);
+    auto y = 1 + 2 * x + 3 * sin(x + 5);
 
-    // PolynomialModel<DType, 2> model;
-    SinusoidalModel<DType> model;
+    LinearModel<DType> lin_model;
+    SinusoidalModel<DType> sin_model;
 
     const float lr = 0.1;
     const int epochs = 2'000;
 
-    optim::Adam optimizer{lr, model.params()};
+    optim::Adam optimizer{lr, make_params(lin_model, sin_model)};
 
     for (int epoch = 0; epoch < epochs; epoch++) {
         PROFILE_SCOPE("epoch");
 
-        auto l = loss(model, x, y);
+        auto y_hat = lin_model.forward(x) + sin_model.forward(x);
+
+        auto l = loss(y, y_hat);
         optimizer.step(l);
 
         if (epoch % 20 == 0) {
@@ -106,5 +108,5 @@ int main() {
         }
     }
 
-    std::cout << "Model: " << model << std::endl;
+    std::cout << "Model: f(x) = " << lin_model << " + " << sin_model << std::endl;
 }
