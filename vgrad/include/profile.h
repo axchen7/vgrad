@@ -80,7 +80,7 @@ class ProfileInstance {
 
     ~ProfileInstance() {
         root.stop();
-        print_profile();
+        // print_profile();
     }
 
    private:

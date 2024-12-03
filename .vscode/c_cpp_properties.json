@@ -4,6 +4,7 @@
       "name": "Mac",
       "includePath": [
         "${workspaceFolder}/vgrad/**",
+        "${workspaceFolder}/typehint/**",
         "/opt/homebrew/opt/libomp/include/**"
       ],
       "defines": [],
