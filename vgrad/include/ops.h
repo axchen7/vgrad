@@ -127,10 +127,6 @@ auto _transpose_no_grad(const A& a) {
     PROFILE_SCOPE("_transpose_no_grad");
     using NewShape = typename A::Shape::template Transpose<I1, I2>;
 
-    if constexpr (std::is_same_v<NewShape, typename A::Shape>) {
-        return a;
-    }
-
     Tensor<NewShape, typename A::DType> result;
 
     constexpr auto idx1 = A::Shape::template normalize_index<I1>();
