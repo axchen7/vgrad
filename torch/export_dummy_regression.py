@@ -1,9 +1,13 @@
+import os
 from export_vgtensor import export_vgtensor
 import math
 import matplotlib.pyplot as plt
 import torch
 
 N_VALS = 1000
+
+DATA_DIR = "../vgrad/examples/data"
+os.makedirs(DATA_DIR, exist_ok=True)
 
 # 1s, 500 readings / sec -> 2ms between readings
 x = torch.linspace(0, 2, N_VALS)
@@ -18,8 +22,8 @@ noise2 = torch.sin(noise_freq * x + math.pi * 3 / 4)
 bern = torch.bernoulli(torch.full_like(x, 0.5))
 readings = baseline + torch.where(bern == 1, noise1, noise2)
 
-export_vgtensor(x, "readings_x.vgtensor")
-export_vgtensor(readings, "readings_y.vgtensor")
+export_vgtensor(x, os.path.join(DATA_DIR, "readings_x.vgtensor"))
+export_vgtensor(readings, os.path.join(DATA_DIR, "readings_y.vgtensor"))
 
 plt.scatter(x, readings, s=1)
 plt.xlabel("Time (s)")

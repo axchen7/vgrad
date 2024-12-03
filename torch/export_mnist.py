@@ -1,9 +1,13 @@
 import torch
 from torchvision import datasets, transforms
 from export_vgtensor import export_vgtensor
+import os
 
 N_TRAIN = 10000
 N_TEST = 500
+
+DATA_DIR = "../vgrad/examples/data"
+os.makedirs(DATA_DIR, exist_ok=True)
 
 # Define a transform to normalize the data
 transform = transforms.Compose([transforms.ToTensor()])
@@ -36,12 +40,12 @@ print(f"Train labels tensor shape: {train_labels.shape}, dtype: {train_labels.dt
 print(f"Test labels tensor shape: {test_labels.shape}, dtype: {test_labels.dtype}")
 
 # Export the training and test images
-export_vgtensor(train_images, "train_images.vgtensor")
-export_vgtensor(test_images, "test_images.vgtensor")
+export_vgtensor(train_images, os.path.join(DATA_DIR, "train_images.vgtensor"))
+export_vgtensor(test_images, os.path.join(DATA_DIR, "test_images.vgtensor"))
 
 # Export the training and test labels
-export_vgtensor(train_labels, "train_labels.vgtensor")
-export_vgtensor(test_labels, "test_labels.vgtensor")
+export_vgtensor(train_labels, os.path.join(DATA_DIR, "train_labels.vgtensor"))
+export_vgtensor(test_labels, os.path.join(DATA_DIR, "test_labels.vgtensor"))
 
 # ===== model and training =====
 
