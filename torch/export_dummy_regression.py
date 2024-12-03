@@ -6,8 +6,6 @@ import torch
 
 N_VALS = 1000
 
-torch.manual_seed(42)
-
 DATA_DIR = "../vgrad/examples/data"
 os.makedirs(DATA_DIR, exist_ok=True)
 
