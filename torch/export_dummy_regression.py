@@ -6,6 +6,8 @@ import torch
 
 N_VALS = 1000
 
+torch.manual_seed(42)
+
 DATA_DIR = "../vgrad/examples/data"
 os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -24,6 +26,12 @@ readings = baseline + torch.where(bern == 1, noise1, noise2)
 
 export_vgtensor(x, os.path.join(DATA_DIR, "readings_x.vgtensor"))
 export_vgtensor(readings, os.path.join(DATA_DIR, "readings_y.vgtensor"))
+
+# export as x, y csv rows
+with open(os.path.join(DATA_DIR, "readings.csv"), "w") as f:
+    f.write("time,force\n")
+    for i in range(N_VALS):
+        f.write(f"{x[i].item()},{readings[i].item()}\n")
 
 plt.scatter(x, readings, s=1)
 plt.xlabel("Time (s)")
