@@ -1,0 +1,22 @@
+CXX = clang++
+CXXFLAGS = -std=c++23 -O2 -Xclang -fopenmp
+LDFLAGS = -lomp
+INCLUDES = -I../include -I../../typehint/include -I/opt/homebrew/opt/libomp/include
+LIBS = -L/opt/homebrew/opt/libomp/lib
+
+measure_unary:
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) measure_unary.cpp -o measure_unary.out $(LDFLAGS)
+
+measure_matmul:
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) measure_matmul.cpp -o measure_matmul.out $(LDFLAGS)
+
+measure_matmul_batch:
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) measure_matmul_batch.cpp -o measure_matmul_batch.out $(LDFLAGS)
+
+measure_transpose:
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) measure_transpose.cpp -o measure_transpose.out $(LDFLAGS)
+
+.PHONY: clean
+
+clean:
+	rm -f *.out
