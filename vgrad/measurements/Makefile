@@ -4,6 +4,8 @@ LDFLAGS = -lomp
 INCLUDES = -I../include -I../../typehint/include -I/opt/homebrew/opt/libomp/include
 LIBS = -L/opt/homebrew/opt/libomp/lib
 
+all: measure_unary measure_matmul measure_matmul_batch measure_transpose
+
 measure_unary:
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) measure_unary.cpp -o measure_unary.out $(LDFLAGS)
 

@@ -4,6 +4,8 @@ LDFLAGS = -lomp
 INCLUDES = -I../include -I../../typehint/include -I/opt/homebrew/opt/libomp/include
 LIBS = -L/opt/homebrew/opt/libomp/lib
 
+all: mnist regression
+
 mnist:
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) mnist.cpp -o mnist.out $(LDFLAGS)
 
