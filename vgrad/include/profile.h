@@ -80,7 +80,10 @@ class ProfileInstance {
 
     ~ProfileInstance() {
         root.stop();
-        // print_profile();
+
+#ifdef PRINT_PROFILE_ON_EXIT
+        print_profile();
+#endif
     }
 
    private:
