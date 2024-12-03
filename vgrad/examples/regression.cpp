@@ -86,6 +86,8 @@ class DoubleNoiseModel {
         return y_hat;
     }
 
+    auto denoise(const auto& x) const { return baseline_model.forward(x); }
+
     auto params() { return make_params(baseline_model, noise1_model, noise2_model); }
 
     template <typename T>
@@ -191,8 +193,13 @@ int main() {
             optimizer.step(l);
 
             if (epoch % 20 == 0) {
-                std::cout << "Epoch " << epoch << "\tLoss: " << l.value() << std::endl;
+                std::cerr << "Epoch " << epoch << "\tLoss: " << l.value() << std::endl;
             }
+        }
+
+        if (epochs > 0) {
+            auto denoised = model.denoise(x);
+            std::cout << denoised[Dim::value - 1] << std::endl;
         }
     }
 
