@@ -106,33 +106,95 @@ auto loss(const auto& y, const auto& y_hat) {
     return loss;
 }
 
+void shift_and_add(auto& tensor, auto val) {
+    PROFILE_SCOPE("shift_and_add");
+    auto& data = tensor._flat_data();
+    for (int i = 0; i < data.size() - 1; i++) {
+        data[i] = data[i + 1];
+    }
+    data[data.size() - 1] = val;
+}
+
+// return false on EOF
+template <typename DType>
+bool read_csv_line(auto& x, auto& y) {
+    std::string line;
+    if (!std::getline(std::cin, line)) {
+        return false;
+    }
+
+    std::stringstream ss{line};
+    std::string token;
+
+    DType x_val;
+    DType y_val;
+
+    std::getline(ss, token, ',');
+    x_val = std::stof(token);
+
+    std::getline(ss, token, ',');
+    y_val = std::stof(token);
+
+    if (ss >> token) {
+        throw std::runtime_error("Extra values in line");
+    }
+
+    shift_and_add(x, x_val);
+    shift_and_add(y, y_val);
+    return true;
+}
+
 int main() {
-    using Dim = Dimension<1000>;
+    using Dim = Dimension<100>;
     using DType = float;
 
-    auto x = import_vgtensor<float, MakeShape<Dim>>("data/readings_x.vgtensor");
-    auto y = import_vgtensor<float, MakeShape<Dim>>("data/readings_y.vgtensor");
+    auto x = zeros<DType, MakeShape<Dim>>();
+    auto y = zeros<DType, MakeShape<Dim>>();
+    size_t num_read = 0;
 
     DType initial_freq = 20;
 
     DoubleNoiseModel<DType> model{initial_freq};
 
     const float lr = 0.1;
-    const int epochs = 2'000;
+    const int initial_epochs = 500;
+    const int refine_epochs = 50;
 
     optim::Adam optimizer{lr, model.params()};
 
-    for (int epoch = 0; epoch < epochs; epoch++) {
-        PROFILE_SCOPE("epoch");
+    // throw out first input line (possibly csv header)
+    std::string _header;
+    std::getline(std::cin, _header);
 
-        auto y_hat = model.forward(x, y);
-        auto l = loss(y, y_hat);
-        optimizer.step(l);
+    // read data in a loop
+    while (true) {
+        PROFILE_SCOPE("read_data");
 
-        if (epoch % 20 == 0) {
-            std::cout << "Epoch " << epoch << "\tLoss: " << l.value() << std::endl;
+        if (!read_csv_line<DType>(x, y)) {
+            break;
+        }
+        num_read++;
+
+        int epochs = 0;
+
+        if (num_read == Dim::value) {
+            epochs = initial_epochs;
+        } else if (num_read > Dim::value) {
+            epochs = refine_epochs;
+        }
+
+        for (int epoch = 0; epoch < epochs; epoch++) {
+            PROFILE_SCOPE("epoch");
+
+            auto y_hat = model.forward(x, y);
+            auto l = loss(y, y_hat);
+            optimizer.step(l);
+
+            if (epoch % 20 == 0) {
+                std::cout << "Epoch " << epoch << "\tLoss: " << l.value() << std::endl;
+            }
         }
     }
 
-    std::cout << "Model: f(x) = " << model << std::endl;
+    // std::cout << "Model: f(x) = " << model << std::endl;
 }
