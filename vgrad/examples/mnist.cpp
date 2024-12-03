@@ -1,10 +1,6 @@
 #include <tuple>
 
-#include "create_tensor.h"
-#include "module.h"
-#include "ops.h"
-#include "optimizers.h"
-#include "vgtensor.h"
+#include "vgrad.h"
 
 using namespace vgrad;
 
