@@ -15,6 +15,15 @@
       "cppStandard": "c++23",
       "intelliSenseMode": "${default}",
       "compilerPath": "/usr/bin/clang++"
+    },
+    {
+      "name": "Win32",
+      "includePath": ["${workspaceFolder}/**"],
+      "defines": [],
+      "compilerPath": "C:\\Program Files\\LLVM\\bin\\clang++.exe",
+      "cStandard": "c17",
+      "cppStandard": "c++23",
+      "intelliSenseMode": "windows-clang-x64"
     }
   ],
   "version": 4
