@@ -1,7 +1,9 @@
 #ifndef VGRAD_OPS_H_
 #define VGRAD_OPS_H_
 
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 #include <span>
 #include <stdexcept>
