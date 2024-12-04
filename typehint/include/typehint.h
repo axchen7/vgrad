@@ -1,4 +1,3 @@
-#ifdef __APPLE__
 #ifndef TYPEHINT_TYPEHINT_H_
 #define TYPEHINT_TYPEHINT_H_
 
@@ -70,4 +69,3 @@ constexpr void static_print() {
 }  // namespace typehint
 
 #endif  // TYPEHINT_TYPEHINT_H_
-#endif  // __APPLE__

@@ -8,17 +8,11 @@
 
 namespace vgrad {
 
-template <Size V
-#ifdef __APPLE__
-          ,
-          typehint::StringLiteral Name = ""
-#endif
-          >
+template <Size V, typehint::StringLiteral Name = "">
     requires(V > 0)
 struct Dimension {
     static constexpr Size value = V;
 
-#ifdef __APPLE__
     static constexpr auto typehint_type() {
         if constexpr (Name.value[0] == '\0') {
             return typehint::to_string(value);
@@ -26,7 +20,6 @@ struct Dimension {
             return std::string{Name.value};
         }
     }
-#endif
 };
 
 template <typename A, Index I>
@@ -157,7 +150,6 @@ struct Shape {
         return result;
     }
 
-#ifdef __APPLE__
     static constexpr auto typehint_type() {
         auto result = Outer::typehint_type();
         if constexpr (Inner::rank > 0) {
@@ -165,7 +157,6 @@ struct Shape {
         }
         return result;
     }
-#endif
 };
 
 struct ScalarShape {
@@ -191,9 +182,7 @@ struct ScalarShape {
     template <Size Count>
     using Last = decltype(last<Count>());
 
-#ifdef __APPLE__
     static constexpr auto typehint_type() { return std::string{"scalar"}; }
-#endif
 };
 
 constexpr auto make_shape() { return ScalarShape{}; }

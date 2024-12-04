@@ -12,7 +12,6 @@
 
 namespace vgrad {
 
-#ifdef __APPLE__
 template <typename DType>
 constexpr std::string dtype_to_string() {
     if constexpr (std::is_same_v<DType, float>) {
@@ -27,7 +26,6 @@ constexpr std::string dtype_to_string() {
         return "unknown";
     }
 }
-#endif
 
 template <Number DType>
 using MemoryConstant = cx::Constant<sizeof(DType), "B">;
@@ -123,13 +121,11 @@ class Tensor {
         return *this;
     }
 
-#ifdef __APPLE__
     static constexpr auto typehint_type() {
         auto shape = Shape::typehint_type();
         auto type = dtype_to_string<DType>();
         return shape + ", " + type;
     }
-#endif
 
    private:
     std::shared_ptr<FlatData> data_;
