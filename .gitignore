@@ -1,4 +1,5 @@
 .DS_Store
 *.out
+*.exe
 .vscode/settings.json
 _typehint_*
