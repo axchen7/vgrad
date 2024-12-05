@@ -12,7 +12,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 # 1s, 500 readings / sec -> 2ms between readings
 x = torch.linspace(0, 2, N_VALS)
 
-baseline = x
+baseline = 2 * x
 
 noise_freq = 20
 noise1 = torch.sin(noise_freq * x)

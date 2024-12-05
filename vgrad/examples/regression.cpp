@@ -196,8 +196,8 @@ int main() {
         if (epochs > 0) {
             auto denoised = model.denoise(x);
             auto last_x = x[Dim::value - 1];
-            auto last_y = y[Dim::value - 1];
-            std::cout << last_x << "," << last_y << std::endl;
+            auto last_denoised_y = denoised[Dim::value - 1];
+            std::cout << last_x << "," << last_denoised_y << std::endl;
         }
     }
 
