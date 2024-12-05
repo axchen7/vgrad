@@ -7,7 +7,7 @@ using namespace vgrad;
 template <Number DType>
 class ScalarModel {
    public:
-    auto forward(const auto& x) const { return coeff; }
+    auto operator()(const auto& x) const { return coeff; }
     auto params() { return make_params(coeff); }
 
     template <typename T>
@@ -23,7 +23,7 @@ class ScalarModel {
 template <Number DType, int degree>
 class PolynomialModel {
    public:
-    auto forward(const auto& x) const { return coeff * pow(x, degree) + next.forward(x); }
+    auto operator()(const auto& x) const { return coeff * pow(x, degree) + next(x); }
 
     auto params() { return make_params(coeff, next); }
 
@@ -50,7 +50,7 @@ class SinusoidalModel {
     SinusoidalModel() {}
     SinusoidalModel(DType initial_freq) : B{initial_freq} {}
 
-    auto forward(const auto& x) const { return A * sin(B * x + C); }
+    auto operator()(const auto& x) const { return A * sin(B * x + C); }
 
     auto params() { return make_params(A, B, C); }
 
@@ -71,9 +71,9 @@ class DoubleNoiseModel {
    public:
     DoubleNoiseModel(DType initial_freq) : noise1_model{initial_freq}, noise2_model{initial_freq} {}
 
-    auto forward(const auto& x, const auto& y) const {
-        auto y_hat1 = baseline_model.forward(x) + noise1_model.forward(x);
-        auto y_hat2 = baseline_model.forward(x) + noise2_model.forward(x);
+    auto operator()(const auto& x, const auto& y) const {
+        auto y_hat1 = baseline_model(x) + noise1_model(x);
+        auto y_hat2 = baseline_model(x) + noise2_model(x);
 
         auto diff1 = pow(y_hat1 - y, 2);
         auto diff2 = pow(y_hat2 - y, 2);
@@ -82,7 +82,7 @@ class DoubleNoiseModel {
         return y_hat;
     }
 
-    auto denoise(const auto& x) const { return baseline_model.forward(x); }
+    auto denoise(const auto& x) const { return baseline_model(x); }
 
     auto params() { return make_params(baseline_model, noise1_model, noise2_model); }
 
@@ -184,7 +184,7 @@ int main() {
         for (int epoch = 0; epoch < epochs; epoch++) {
             PROFILE_SCOPE("epoch");
 
-            auto y_hat = model.forward(x, y);
+            auto y_hat = model(x, y);
             auto l = loss(y, y_hat);
             optimizer.step(l);
 

@@ -7,11 +7,11 @@ using namespace vgrad;
 template <IsDimension In, IsDimension Out, Number DType, IsDimension Inner>
 class Model {
    public:
-    auto forward(const auto& x) const {
+    auto operator()(const auto& x) const {
         PROFILE_SCOPE("Model::forward");
-        auto o1 = layer1.forward(x);
+        auto o1 = layer1(x);
         auto o2 = relu(o1);
-        auto o3 = layer2.forward(o2);
+        auto o3 = layer2(o2);
         return o3;
     }
 
@@ -60,11 +60,11 @@ int main() {
     for (int epoch = 0; epoch < epochs; epoch++) {
         PROFILE_SCOPE("epoch");
 
-        auto train_out = model.forward(train_flat);
+        auto train_out = model(train_flat);
         auto train_loss = cross_entropy(train_out, train_labels);
         optimizer.step(train_loss);
 
-        auto test_out = model.forward(test_flat);
+        auto test_out = model(test_flat);
         auto test_loss = cross_entropy(test_out, test_labels);
 
         auto test_acc = compute_accuracy(test_out, test_labels);
