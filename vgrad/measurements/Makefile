@@ -13,7 +13,7 @@ endif
 INCLUDES = -I../include -I../../typehint/include -I/opt/homebrew/opt/libomp/include
 LIBS = -L/opt/homebrew/opt/libomp/lib
 
-all: measure_unary measure_matmul measure_matmul_batch measure_transpose
+all: measure_unary measure_matmul measure_matmul_batch measure_transpose precision
 
 measure_unary:
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) measure_unary.cpp -o measure_unary$(EXT) $(LDFLAGS)
@@ -26,6 +26,9 @@ measure_matmul_batch:
 
 measure_transpose:
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) measure_transpose.cpp -o measure_transpose$(EXT) $(LDFLAGS)
+
+precision:
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) precision.cpp -o precision$(EXT) $(LDFLAGS)
 
 .PHONY: clean
 
