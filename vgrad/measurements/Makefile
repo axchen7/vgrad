@@ -21,9 +21,6 @@ measure_unary:
 measure_matmul:
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) measure_matmul.cpp -o measure_matmul$(EXT) $(LDFLAGS)
 
-measure_matmul_batch:
-	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) measure_matmul_batch.cpp -o measure_matmul_batch$(EXT) $(LDFLAGS)
-
 measure_transpose:
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) measure_transpose.cpp -o measure_transpose$(EXT) $(LDFLAGS)
 
