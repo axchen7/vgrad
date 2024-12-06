@@ -53,7 +53,7 @@ int main() {
     Model<FlatSize, Classes, float, Inner> model;
 
     const float lr = 0.1;
-    const int epochs = 4;
+    const int epochs = 200;
 
     optim::Adam optimizer{lr, model.params()};
 
