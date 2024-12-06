@@ -24,6 +24,11 @@ concept IsNode = requires {
 } && T::is_node;
 
 template <typename T>
+concept IsLeafNode = IsNode<T> && requires {
+    { T::is_leaf_node } -> std::same_as<const bool&>;
+} && T::is_leaf_node;
+
+template <typename T>
 concept IsUnaryNode = IsNode<T> && requires {
     { T::is_unary_node } -> std::same_as<const bool&>;
 } && T::is_unary_node;

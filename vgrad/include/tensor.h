@@ -35,6 +35,7 @@ using TimeConstant = cx::Constant<1, "ops">;
 template <IsShape _OutShape, Number _DType>
 struct LeafNode {
     static constexpr bool is_node = true;
+    static constexpr bool is_leaf_node = true;
     using DType = _DType;
     using OutShape = _OutShape;
 
@@ -93,6 +94,15 @@ class Tensor {
         requires(Shape::rank > 0)
     {
         return nested_view()[index];
+    }
+
+    template <typename T>
+    auto& operator-=(const T& other)
+        requires IsLeafNode<Node>
+    {
+        auto result = *this - other;
+        this->data_ = std::make_shared<FlatData>(result.flat_view());
+        return *this;
     }
 
     auto detach() const { return Detached{data_}; }
