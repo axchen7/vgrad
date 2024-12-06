@@ -13,7 +13,10 @@ endif
 INCLUDES = -I../include -I../../typehint/include -I/opt/homebrew/opt/libomp/include
 LIBS = -L/opt/homebrew/opt/libomp/lib
 
-all: mnist regression
+all: gradient mnist regression
+
+gradient:
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) gradient.cpp -o gradient$(EXT) $(LDFLAGS)
 
 mnist:
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LIBS) mnist.cpp -o mnist$(EXT) $(LDFLAGS)
